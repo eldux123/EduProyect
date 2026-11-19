@@ -1,0 +1,14 @@
+{
+    "verdict":  "APPROVED",
+    "findings":  [
+                     "Evidencia real y reproducida en vivo: FASE A cierra 114/114; la MISMA obligacion typed_security_can_ensures_8_part7 pasa a [Failure] con Z3 en FASE C.2. El resultado concluyente es un Failure (refutacion), no un Timeout.",
+                     "Los documentos distinguen EXPLICITAMENTE Failure (negativo decisivo) vs Timeout (no concluyente) vs no-demostrado/Unknown, en tabla dedicada; el Timeout de Alt-Ergo se presenta como contraste, nunca como exito.",
+                     "No hay resultados inventados: cada cifra cita su artefacto en salidas_wp/*.txt y coincide con mi reproduccion independiente (Frama-C 33.0, Alt-Ergo 2.4.3-free, Z3 4.13.0).",
+                     "Alcance honesto: README.md y comparacion.md declaran que se demuestra la deteccion de UNA violacion concreta en security_can, NO la correccion global de EduChain.",
+                     "Versiones registradas: Frama-C 33.0 (Arsenic), Alt-Ergo 2.4.3-free, Z3 4.13.0 (why3), en env_capturado.txt y no_modificacion.md.",
+                     "Repo original y linea base intactos: git status de src/ include/ verification/ .frama-c/ tests/ main.c y docs preexistentes limpio; commit 268cc7c solo agrega 13 entregables nuevos (0 cambios en archivos existentes). security.c y el contrato ACSL coinciden con lo citado.",
+                     "Aislamiento y reproducibilidad confirmados: el script trabaja solo en /tmp/educhain_mutacion, usa -wp-cache none y descarta la copia mutada; verifique que mutado/ no existe tras la corrida.",
+                     "OBSERVACION MENOR (no bloqueante): en comparacion.md las sub-metas ensures_9_part1..9 se describen como partidas por Qed; en realidad las refuta Z3 ([Failure] ... (Z3)). Sugerencia de redaccion, sin impacto en la conclusion."
+                 ],
+    "reviewDoc":  "/mnt/c/Users/erick/Downloads/Blockchain/EduProyect/docs/experimento_mutacion/revision_rigor.md"
+}
