@@ -251,3 +251,64 @@ int credential_revoke(educhain_state_t *st, role_t caller_role, int caller_id, i
     (void)audit_record_event(st, caller_id, OP_REVOKE_CRED, cred_id, EDU_OK);
     return EDU_OK;
 }
+
+/* ==========================================================================
+ * Integracion con el flujo de solicitudes (Rev 5 §8-ter) — ADITIVA, SOLO LECTURA.
+ * Opcion 2: credential_issue queda INTACTA; esta via nueva consulta la trayectoria
+ * vigente y delega. (La Rev 5 §8-ter especificaba la Opcion 1 -ampliar la firma de
+ * credential_issue-; se usa la via aditiva por el alcance Opcion 2, sin romper
+ * call-sites. Ver nota en credentials.h.)
+ * ========================================================================== */
+
+/* credential_eligible: >=1 registro VIGENTE REQ_RECORDED del owner en
+ * CAT_INSTITUTION_WORKED o CAT_LINK_PERIOD. Solo lectura. Patron gemelo de
+ * experience_validated_count: busqueda lineal con flag acotado, sin aritmetica
+ * de fechas. REQ_SUPERSEDED queda excluido por construccion (no es REQ_RECORDED). */
+int credential_eligible(const requests_state_t *rs, int owner_id)
+{
+    int i;
+    int found = 0;
+    if (rs == 0) {
+        return 0;
+    }
+    /*@
+      loop invariant 0 <= i <= rs->reqs_count;
+      loop invariant 0 <= found <= 1;
+      loop invariant (found == 1) <==>
+          (\exists integer k; 0 <= k < i
+           && rs->reqs[k].owner_id == owner_id
+           && rs->reqs[k].state == REQ_RECORDED
+           && (rs->reqs[k].category == CAT_INSTITUTION_WORKED
+               || rs->reqs[k].category == CAT_LINK_PERIOD));
+      loop assigns i, found;
+      loop variant rs->reqs_count - i;
+    */
+    for (i = 0; i < rs->reqs_count; i++) {
+        if (rs->reqs[i].owner_id == owner_id &&
+            rs->reqs[i].state == REQ_RECORDED &&
+            (rs->reqs[i].category == CAT_INSTITUTION_WORKED ||
+             rs->reqs[i].category == CAT_LINK_PERIOD)) {
+            found = 1;
+        }
+    }
+    return found;
+}
+
+/* credential_issue_eligible: emite SOLO si hay trayectoria vigente que habilite.
+ * Valida elegibilidad ANTES de delegar (no muta si no es elegible). La emision en
+ * si (rol COORD, ids, profesional activo, duplicados, capacidad, auditoria) la
+ * hace credential_issue intacta. rs es de SOLO LECTURA. */
+int credential_issue_eligible(educhain_state_t *st, const requests_state_t *rs,
+                              role_t caller_role, int caller_id, int cred_id, int owner_id)
+{
+    if (st == 0 || rs == 0) {
+        return ERR_NULL;
+    }
+    /* Elegibilidad obligatoria (consulta de solo lectura sobre la trayectoria
+     * vigente REQ_RECORDED). Sin ella, NUNCA se emite y no se muta nada. */
+    if (!credential_eligible(rs, owner_id)) {
+        return ERR_PERM;
+    }
+    /* Delega en la emision existente (conserva toda su validacion y auditoria). */
+    return credential_issue(st, caller_role, caller_id, cred_id, owner_id);
+}

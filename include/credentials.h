@@ -6,6 +6,7 @@
 #define EDUCHAIN_CREDENTIALS_H
 
 #include "common.h"
+#include "requests.h"   /* requests_state_t + (bajo __FRAMAC__) predicado req_eligible */
 #ifdef __FRAMAC__
 /* Fase 4 (correccion BLOQUEANTE-2): predicado logico role_can (matriz de permisos).
  * Solo bajo Frama-C: vive en verification/ (fuera del -Iinclude del build gcc). */
@@ -184,5 +185,79 @@ int credential_status(const educhain_state_t *st, int cred_id);
              && st->creds[k].id == cred_id && st->creds[k].state == CRED_ACTIVE);
 */
 int credential_is_valid(const educhain_state_t *st, int cred_id);
+
+/* =====================================================================
+ * Integracion con el flujo de solicitudes (Rev 5 §8-ter) — ADITIVA, SOLO LECTURA.
+ *
+ * NOTA DE ALCANCE. La Rev 5 §8-ter especifica la "Opcion 1": AMPLIAR la firma de
+ * credential_issue con `const requests_state_t *rs`. Por el alcance acotado a la
+ * Opcion 2 (no inflar el proyecto ni romper call-sites), aqui se implementa la
+ * "Opcion 2" ADITIVA: credential_issue queda INTACTA (y sus call-sites en main.c,
+ * ui/educhain_cli.c, tests/) y se expone una NUEVA via de emision
+ * credential_issue_eligible que consulta credential_eligible y delega en
+ * credential_issue. La regla de elegibilidad es identica a la Rev 5.
+ * ===================================================================== */
+
+/* credential_eligible: 1 si owner_id es elegible para recibir/renovar credencial,
+ * 0 si no. Elegible = tiene >=1 registro VIGENTE (state == REQ_RECORDED) cuya
+ * categoria sea CAT_INSTITUTION_WORKED o CAT_LINK_PERIOD (criterio DEFINITIVO
+ * Rev 5 §8-ter). Consulta de SOLO LECTURA (assigns \nothing). Excluye por
+ * construccion REQ_SUPERSEDED (no es REQ_RECORDED) y PENDING/ENDORSED/VERIFIED/
+ * REJECTED; los registros heredados de experience.c viven en educhain_state_t,
+ * NO en rs, de modo que quedan fuera por tipo. Patron gemelo de
+ * experience_validated_count (src/experience.c). */
+/*@ requires \valid_read(rs);
+    requires 0 <= rs->reqs_count <= MAX_REQUESTS;
+    assigns \nothing;
+    ensures \result == 0 || \result == 1;
+    // P-20 (se espera WP): elegible <=> req_eligible(rs, owner_id) (predicado de
+    // requests.h, gemelo logico). El existencial positivo global puede caer en la
+    // limitacion (G) (sin invariante global) y quedar parcial; respaldo dinamico en
+    // tests/test_credentials.c. Nada demostrado sin WP.
+    ensures \result == 1 <==> req_eligible(rs, owner_id);
+*/
+int credential_eligible(const requests_state_t *rs, int owner_id);
+
+/* credential_issue_eligible: via de emision ADITIVA. Emite la credencial SOLO si
+ * owner_id es elegible segun la trayectoria VIGENTE (credential_eligible sobre rs);
+ * si no es elegible, devuelve ERR_PERM SIN mutar nada. Si es elegible, delega en
+ * credential_issue (que conserva TODA su validacion: rol COORD, ids, profesional
+ * activo, duplicados, capacidad, auditoria). rs es de SOLO LECTURA: no amplia el
+ * frame de escritura de credential_issue (que sigue escribiendo solo educhain_state_t).
+ * Mantiene la consistencia registros<->credenciales (solo REQ_RECORDED habilita). */
+/*@ requires \valid(st) && \valid_read(rs);
+    requires \separated(st, rs);
+    requires 0 <= st->creds_count <= MAX_CREDENTIALS;
+    requires 0 <= st->log_count   <= MAX_EVENTS;
+    requires 0 <= st->pros_count  <= MAX_PROFESSIONALS;
+    requires 0 <= rs->reqs_count  <= MAX_REQUESTS;
+    ensures \result == EDU_OK || \result == ERR_PERM || \result == ERR_BAD_ID
+         || \result == ERR_NOT_FOUND || \result == ERR_DUPLICATE || \result == ERR_FULL;
+    // Elegibilidad obligatoria (ambas mitades), via el predicado req_eligible:
+    //  - sin trayectoria vigente que habilite, NUNCA se emite (no muta, ERR_PERM).
+    ensures !req_eligible(rs, owner_id) ==> \result == ERR_PERM;
+    //  - si se emite, el owner era elegible.
+    ensures \result == EDU_OK ==> req_eligible(rs, owner_id);
+    // Atomicidad heredada de credential_issue: el contador crece 1 en exito,
+    // intacto en error. (Se deriva del contrato de credential_issue.)
+    ensures \result == EDU_OK ==> st->creds_count == \old(st->creds_count) + 1;
+    ensures \result != EDU_OK ==> st->creds_count == \old(st->creds_count);
+    ensures st->creds_count <= MAX_CREDENTIALS;
+    // assigns por behavior (patron credential_issue): solo el camino elegible + con
+    // hueco escribe; el no-elegible (y el sin-hueco) no tocan nada. rs NUNCA se escribe.
+    behavior not_eligible_or_no_space:
+      assumes !req_eligible(rs, owner_id)
+           || st->creds_count >= MAX_CREDENTIALS || st->log_count >= MAX_EVENTS;
+      assigns \nothing;
+    behavior eligible_with_space:
+      assumes req_eligible(rs, owner_id)
+           && st->creds_count < MAX_CREDENTIALS && st->log_count < MAX_EVENTS;
+      assigns st->creds[st->creds_count], st->creds_count,
+              st->log[st->log_count], st->log_count;
+    complete behaviors;
+    disjoint behaviors not_eligible_or_no_space, eligible_with_space;
+*/
+int credential_issue_eligible(educhain_state_t *st, const requests_state_t *rs,
+                              role_t caller_role, int caller_id, int cred_id, int owner_id);
 
 #endif /* EDUCHAIN_CREDENTIALS_H */

@@ -42,6 +42,8 @@ static int request_role_can(role_t caller_role, int op_code)
     case OP_VERIFY_REQUEST:
     case OP_REJECT_REQUEST:
         return (caller_role == ROLE_VERIFIER) ? 1 : 0;
+    case OP_RECORD_REQUEST:
+        return (caller_role == ROLE_ADMIN) ? 1 : 0;
     default:
         return 0;
     }
@@ -531,5 +533,100 @@ int request_reject(educhain_state_t *st, requests_state_t *rs,
     rs->reqs[idx].state = REQ_REJECTED;
 
     (void)audit_record_event(st, caller_id, OP_REJECT_REQUEST, req_id, EDU_OK);
+    return EDU_OK;
+}
+
+/* ==========================================================================
+ * request_record: incorporacion al historial oficial. SOLO ADMIN (Rev 5 §5.4).
+ *   Variante A (prev_id == 0): REQ_VERIFIED -> REQ_RECORDED (simple).
+ *   Variante B (prev_id != 0): en la misma operacion atomica,
+ *     req_id: REQ_VERIFIED -> REQ_RECORDED  y  prev_id: REQ_RECORDED -> REQ_SUPERSEDED.
+ * Patron "validar TODO antes de mutar NADA" (atomicidad BR-10): toda la validacion-R
+ * (§5.5) se ejecuta antes de la primera escritura, de modo que en cualquier error
+ * NINGUNO de los dos slots se modifica. El anterior cambia SOLO su campo state.
+ * ========================================================================== */
+int request_record(educhain_state_t *st, requests_state_t *rs,
+                   role_t caller_role, int caller_id, int req_id)
+{
+    int idx;
+    int prev_id;
+    int prev;
+    int cat_has_inst;
+    if (st == 0 || rs == 0) {
+        return ERR_NULL;
+    }
+    if (caller_id < ID_MIN || caller_id > ID_MAX ||
+        req_id < ID_MIN || req_id > ID_MAX) {
+        return ERR_BAD_ID;
+    }
+    /* SOLO ADMIN (separacion estricta del flujo nuevo). */
+    if (!request_role_can(caller_role, OP_RECORD_REQUEST)) {
+        return ERR_PERM;
+    }
+    idx = request_find(rs, req_id);
+    if (idx < 0) {
+        return ERR_NOT_FOUND;
+    }
+    /* La solicitud a incorporar debe estar aprobada (REQ_VERIFIED), ambas variantes. */
+    if (rs->reqs[idx].state != REQ_VERIFIED) {
+        return ERR_BAD_TRANSITION;
+    }
+
+    prev_id = rs->reqs[idx].prev_id;
+
+    /* ---------- Variante B: correccion con sustitucion (prev_id != 0) ----------
+     * Validacion-R COMPLETA antes de tocar nada (re-valida prev_id: su estado pudo
+     * cambiar entre presentar e incorporar). */
+    if (prev_id != 0) {
+        /* 1. prev_id existe. */
+        prev = request_find(rs, prev_id);
+        if (prev < 0) {
+            return ERR_NOT_FOUND;
+        }
+        /* 2. prev vigente REQ_RECORDED. Rechaza re-sustituir un REQ_SUPERSEDED y la
+         *    2a correccion de una carrera (prev ya paso a SUPERSEDED): falla LIMPIO. */
+        if (rs->reqs[prev].state != REQ_RECORDED) {
+            return ERR_BAD_TRANSITION;
+        }
+        /* 3. Mismo propietario que el registro corregido. */
+        if (rs->reqs[idx].owner_id != rs->reqs[prev].owner_id) {
+            return ERR_PERM;
+        }
+        /* 4. Coherencia T-1: misma categoria; institucion fijada por la categoria. */
+        if ((int)rs->reqs[idx].category != (int)rs->reqs[prev].category) {
+            return ERR_BAD_TRANSITION;
+        }
+        cat_has_inst = req_needs_endorsement((int)rs->reqs[idx].category,
+                                             rs->reqs[idx].institution_id);
+        if (cat_has_inst) {
+            if (rs->reqs[idx].institution_id != rs->reqs[prev].institution_id) {
+                return ERR_BAD_TRANSITION;
+            }
+        } else {
+            if (rs->reqs[idx].institution_id != 0 || rs->reqs[prev].institution_id != 0) {
+                return ERR_BAD_TRANSITION;
+            }
+        }
+        /* 6. Hueco de log (5 ya comprobada arriba: req_id esta REQ_VERIFIED). */
+        if (st->log_count >= MAX_EVENTS) {
+            return ERR_FULL;
+        }
+
+        /* --- Mutacion atomica: ambos slots, SOLO su campo state. --- */
+        rs->reqs[idx].state  = REQ_RECORDED;
+        rs->reqs[prev].state = REQ_SUPERSEDED;
+
+        (void)audit_record_event(st, caller_id, OP_RECORD_REQUEST, req_id, EDU_OK);
+        return EDU_OK;
+    }
+
+    /* ---------- Variante A: incorporacion simple (prev_id == 0) ---------- */
+    if (st->log_count >= MAX_EVENTS) {
+        return ERR_FULL;
+    }
+
+    rs->reqs[idx].state = REQ_RECORDED;
+
+    (void)audit_record_event(st, caller_id, OP_RECORD_REQUEST, req_id, EDU_OK);
     return EDU_OK;
 }

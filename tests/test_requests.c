@@ -263,4 +263,158 @@ void test_requests(void)
     CHECK_EQ(request_submit_correction(&st, &rs, ROLE_PRO, 101, 6102, 101, 500,
                                        CAT_PUBLICATION, 20200101, 20201231, 0, 6100,
                                        0, 0, 0, 0), ERR_BAD_TRANSITION, "cat sin respaldo con institucion ERR_BAD_TRANSITION");
+
+    /* ================= request_record ================= */
+    /* ---- Variante A: incorporacion simple REQ_VERIFIED -> REQ_RECORDED (ADMIN). ---- */
+    memset(&st, 0, sizeof(st));
+    request_init(&rs);
+    seed_authz(&rs, 7001, 300);
+    /* PROFESSOR presenta y VERIFIER verifica una solicitud sin respaldo. */
+    CHECK_EQ(request_submit(&st, &rs, ROLE_PRO, 100, 7000, 100, 0,
+                            CAT_PUBLICATION, 20200101, 20201231, 11,
+                            0, 0, 0, 0), EDU_OK, "record: submit 7000 OK");
+    CHECK_EQ(request_verify(&st, &rs, ROLE_VERIFIER, 80, 7000), EDU_OK, "record: verify 7000 OK");
+    /* Solo ADMIN incorpora: roles prohibidos. */
+    CHECK_EQ(request_record(&st, &rs, ROLE_VERIFIER, 80, 7000), ERR_PERM, "record rol!=ADMIN (VERIFIER) ERR_PERM");
+    CHECK_EQ(request_record(&st, &rs, ROLE_COORD, 60, 7000), ERR_PERM, "record rol!=ADMIN (COORD) ERR_PERM");
+    CHECK_EQ(request_record(&st, &rs, ROLE_PRO, 100, 7000), ERR_PERM, "record rol!=ADMIN (PRO) ERR_PERM");
+    /* id invalido -> ERR_BAD_ID (antes del permiso). */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 0, 7000), ERR_BAD_ID, "record caller_id invalido ERR_BAD_ID");
+    /* inexistente -> ERR_NOT_FOUND. */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 8888), ERR_NOT_FOUND, "record inexistente ERR_NOT_FOUND");
+    /* NULL defensivo. */
+    CHECK_EQ(request_record(0, &rs, ROLE_ADMIN, 50, 7000), ERR_NULL, "record st NULL ERR_NULL");
+    /* ADMIN incorpora -> RECORDED. */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 7000), EDU_OK, "record ADMIN simple OK");
+    CHECK_EQ(request_status(&rs, 7000), REQ_RECORDED, "record VERIFIED->RECORDED");
+    /* contenido aprobado inmutable: solo cambio state. */
+    {
+        int ix = request_find(&rs, 7000);
+        CHECK_EQ(rs.reqs[ix].owner_id, 100, "record no altera owner");
+        CHECK_EQ(rs.reqs[ix].evidence_ref, 11, "record no altera evidence_ref");
+        CHECK_EQ(rs.reqs[ix].category, CAT_PUBLICATION, "record no altera categoria");
+    }
+    /* record audita caller_id real y op_code. */
+    CHECK_EQ(st.log[st.log_count - 1].actor_id, 50, "record audita caller_id (50)");
+    CHECK_EQ(st.log[st.log_count - 1].op_code, OP_RECORD_REQUEST, "record op_code");
+    /* no re-incorporar: ya RECORDED -> ERR_BAD_TRANSITION. */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 7000), ERR_BAD_TRANSITION, "record ya RECORDED ERR_BAD_TRANSITION");
+    /* incorporar desde un estado != VERIFIED (sembramos PENDING). */
+    CHECK_EQ(request_submit(&st, &rs, ROLE_PRO, 101, 7010, 101, 0,
+                            CAT_PUBLICATION, 20200101, 20201231, 0,
+                            0, 0, 0, 0), EDU_OK, "record: submit 7010 (PENDING) OK");
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 7010), ERR_BAD_TRANSITION, "record desde PENDING ERR_BAD_TRANSITION");
+
+    /* ---- Variante B: incorporacion con sustitucion (correccion) ---- */
+    memset(&st, 0, sizeof(st));
+    request_init(&rs);
+    /* Registro vigente sembrado: 6200 RECORDED, owner 100, inst 0, PUBLICATION. */
+    seed_recorded(&rs, 6200, 100, 0, CAT_PUBLICATION);
+    /* Correccion de 6200: nace, se verifica. */
+    CHECK_EQ(request_submit_correction(&st, &rs, ROLE_PRO, 100, 6201, 100, 0,
+                                       CAT_PUBLICATION, 20200101, 20201231, 9, 6200,
+                                       0, 0, 0, 0), EDU_OK, "recordB: correccion 6201 OK");
+    CHECK_EQ(request_verify(&st, &rs, ROLE_VERIFIER, 80, 6201), EDU_OK, "recordB: verify 6201 OK");
+    /* ADMIN incorpora la correccion: 6201 RECORDED y 6200 SUPERSEDED (atomico). */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 6201), EDU_OK, "recordB sustitucion OK");
+    CHECK_EQ(request_status(&rs, 6201), REQ_RECORDED, "recordB: nueva -> RECORDED");
+    CHECK_EQ(request_status(&rs, 6200), REQ_SUPERSEDED, "recordB: anterior -> SUPERSEDED");
+    /* el anterior conserva su contenido (solo state cambio). */
+    {
+        int ix = request_find(&rs, 6200);
+        CHECK_EQ(rs.reqs[ix].owner_id, 100, "recordB: anterior conserva owner");
+        CHECK_EQ(rs.reqs[ix].category, CAT_PUBLICATION, "recordB: anterior conserva categoria");
+    }
+    /* historial conservado: el SUPERSEDED no se borra (sigue encontrandose). */
+    CHECK_EQ(request_find(&rs, 6200) >= 0, 1, "recordB: SUPERSEDED no se borra");
+
+    /* ---- Carrera de dos correcciones: la primera gana, la segunda falla limpio. ---- */
+    memset(&st, 0, sizeof(st));
+    request_init(&rs);
+    seed_recorded(&rs, 6300, 200, 0, CAT_PUBLICATION);
+    /* B y B' ambas corrigen 6300, ambas verificadas. */
+    CHECK_EQ(request_submit_correction(&st, &rs, ROLE_PRO, 200, 6301, 200, 0,
+                                       CAT_PUBLICATION, 20200101, 20201231, 0, 6300,
+                                       0, 0, 0, 0), EDU_OK, "carrera: B 6301 OK");
+    CHECK_EQ(request_submit_correction(&st, &rs, ROLE_PRO, 200, 6302, 200, 0,
+                                       CAT_PUBLICATION, 20210101, 20211231, 0, 6300,
+                                       0, 0, 0, 0), EDU_OK, "carrera: B' 6302 OK");
+    CHECK_EQ(request_verify(&st, &rs, ROLE_VERIFIER, 80, 6301), EDU_OK, "carrera: verify B OK");
+    CHECK_EQ(request_verify(&st, &rs, ROLE_VERIFIER, 80, 6302), EDU_OK, "carrera: verify B' OK");
+    /* La primera (B) incorpora: gana. */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 6301), EDU_OK, "carrera: B incorpora (gana)");
+    CHECK_EQ(request_status(&rs, 6300), REQ_SUPERSEDED, "carrera: 6300 -> SUPERSEDED");
+    /* La segunda (B') re-valida prev_id, ve 6300 ya no RECORDED, falla LIMPIO. */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 6302), ERR_BAD_TRANSITION, "carrera: B' falla limpio");
+    /* B' sigue VERIFIED (no muto), 6301 sigue RECORDED, 6300 sigue SUPERSEDED. */
+    CHECK_EQ(request_status(&rs, 6302), REQ_VERIFIED, "carrera: B' sigue VERIFIED (sin mutar)");
+    CHECK_EQ(request_status(&rs, 6301), REQ_RECORDED, "carrera: B sigue RECORDED");
+    CHECK_EQ(request_status(&rs, 6300), REQ_SUPERSEDED, "carrera: 6300 sigue SUPERSEDED");
+
+    /* ---- Atomicidad en error de la Variante B (T-1 viola): nada se modifica. ---- */
+    memset(&st, 0, sizeof(st));
+    request_init(&rs);
+    seed_recorded(&rs, 6400, 300, 0, CAT_PUBLICATION);
+    /* Correccion mal formada que logra verificarse apuntando a 6400 pero con
+     * owner distinto: se siembra manualmente un VERIFIED con prev_id=6400 y owner 999. */
+    {
+        int n = rs.reqs_count;
+        memset(&rs.reqs[n], 0, sizeof(rs.reqs[n]));
+        rs.reqs[n].id = 6401;
+        rs.reqs[n].owner_id = 999;              /* owner distinto del anterior (300) */
+        rs.reqs[n].institution_id = 0;
+        rs.reqs[n].category = CAT_PUBLICATION;
+        rs.reqs[n].state = REQ_VERIFIED;
+        rs.reqs[n].prev_id = 6400;
+        rs.reqs[n].start_date = 20200101;
+        rs.reqs[n].end_date = 20201231;
+        rs.reqs_count = n + 1;
+    }
+    /* Incorporar falla por owner distinto (validacion-R 3) -> ERR_PERM. */
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 6401), ERR_PERM, "atomicidad: owner distinto ERR_PERM");
+    /* NINGUNO de los dos slots se modifico: 6401 sigue VERIFIED, 6400 sigue RECORDED. */
+    CHECK_EQ(request_status(&rs, 6401), REQ_VERIFIED, "atomicidad: nueva intacta (VERIFIED)");
+    CHECK_EQ(request_status(&rs, 6400), REQ_RECORDED, "atomicidad: anterior intacto (RECORDED)");
+    /* no se audito nada (log vacio). */
+    CHECK_EQ(st.log_count, 0, "atomicidad: no se audito en error");
+
+    /* ---- Variante B: prev ya SUPERSEDED -> no re-sustituir (ERR_BAD_TRANSITION). ---- */
+    {
+        int n = rs.reqs_count;
+        memset(&rs.reqs[n], 0, sizeof(rs.reqs[n]));
+        rs.reqs[n].id = 6410;
+        rs.reqs[n].owner_id = 300;
+        rs.reqs[n].category = CAT_PUBLICATION;
+        rs.reqs[n].state = REQ_SUPERSEDED;      /* ya sustituido */
+        rs.reqs_count = n + 1;
+    }
+    {
+        int n = rs.reqs_count;
+        memset(&rs.reqs[n], 0, sizeof(rs.reqs[n]));
+        rs.reqs[n].id = 6411;
+        rs.reqs[n].owner_id = 300;
+        rs.reqs[n].category = CAT_PUBLICATION;
+        rs.reqs[n].state = REQ_VERIFIED;
+        rs.reqs[n].prev_id = 6410;              /* apunta a un SUPERSEDED */
+        rs.reqs[n].start_date = 20200101;
+        rs.reqs[n].end_date = 20201231;
+        rs.reqs_count = n + 1;
+    }
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 6411), ERR_BAD_TRANSITION, "recordB: prev SUPERSEDED no re-sustituir");
+    CHECK_EQ(request_status(&rs, 6411), REQ_VERIFIED, "recordB: tras fallo nueva sigue VERIFIED");
+
+    /* ---- Variante B: prev_id inexistente al incorporar -> ERR_NOT_FOUND. ---- */
+    {
+        int n = rs.reqs_count;
+        memset(&rs.reqs[n], 0, sizeof(rs.reqs[n]));
+        rs.reqs[n].id = 6420;
+        rs.reqs[n].owner_id = 300;
+        rs.reqs[n].category = CAT_PUBLICATION;
+        rs.reqs[n].state = REQ_VERIFIED;
+        rs.reqs[n].prev_id = 55555;             /* prev inexistente */
+        rs.reqs[n].start_date = 20200101;
+        rs.reqs[n].end_date = 20201231;
+        rs.reqs_count = n + 1;
+    }
+    CHECK_EQ(request_record(&st, &rs, ROLE_ADMIN, 50, 6420), ERR_NOT_FOUND, "recordB: prev inexistente ERR_NOT_FOUND");
 }

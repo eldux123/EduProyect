@@ -2,13 +2,16 @@
  * Modulo del flujo de solicitudes (presentador -> verificador -> administrador).
  * Fuente de verdad: docs/diseno_flujo_solicitudes.md (Rev 5).
  *
- * PRIMER ENTREGABLE (ETAPA 2, acotado): estructura inicial + primeras operaciones.
+ * ETAPA 2: estructura inicial + ciclo de vida completo de solicitudes.
  *   - request_init, request_find, request_status, request_requires_endorsement
  *   - request_submit, request_submit_correction
  *   - request_endorse, request_verify, request_reject
- * NO incluye (entregables posteriores): request_record, consultas publicas *_for,
- * authz_grant/revoke, requests_is_representative, credential_eligible, ni la
- * integracion con security.c / credentials.c.
+ *   - request_record (incorporacion al historial oficial, ADMIN; Variante A simple
+ *     REQ_VERIFIED->REQ_RECORDED y Variante B correccion con sustitucion atomica
+ *     del registro anterior REQ_RECORDED->REQ_SUPERSEDED, Rev 5 §5.4/§5.5/§6)
+ * NO incluye (Opcion 3, excluido): consultas publicas *_for, authz_grant/revoke,
+ * requests_is_representative, P-SCOPE. La elegibilidad de credenciales
+ * (credential_eligible) y su integracion con credentials.c se tratan aparte.
  *
  * Autorizacion en este entregable: el modulo lleva su propia comprobacion de rol
  * interna (request_role_can, un switch puro en src/requests.c). NO se llama a
@@ -32,15 +35,31 @@
   // las OPs de este entregable. Es el gemelo de role_can (specifications.h) pero
   // para las operaciones de requests; refleja request_role_can (src/requests.c).
   // SUBMIT: INSTITUTION | PROFESSOR(=ROLE_PRO); ENDORSE: INSTITUTION;
-  // VERIFY/REJECT: VERIFIER. ADMIN/HR/COORD negados en estas OPs (separacion
-  // estricta del flujo nuevo). No presupone nada: es la definicion de la matriz.
+  // VERIFY/REJECT: VERIFIER; RECORD: ADMIN (incorporacion al historial oficial,
+  // Rev 5 §5.4/§5.5/§8-bis). HR/COORD negados en estas OPs (separacion estricta
+  // del flujo nuevo). No presupone nada: es la definicion de la matriz.
   predicate req_role_can(role_t r, integer op) =
        (op == OP_SUBMIT_REQUEST  ==> (r == ROLE_INSTITUTION || r == ROLE_PRO))
     && (op == OP_ENDORSE_REQUEST ==> (r == ROLE_INSTITUTION))
     && (op == OP_VERIFY_REQUEST  ==> (r == ROLE_VERIFIER))
     && (op == OP_REJECT_REQUEST  ==> (r == ROLE_VERIFIER))
+    && (op == OP_RECORD_REQUEST  ==> (r == ROLE_ADMIN))
     && (!(op == OP_SUBMIT_REQUEST || op == OP_ENDORSE_REQUEST
-          || op == OP_VERIFY_REQUEST || op == OP_REJECT_REQUEST) ==> \false);
+          || op == OP_VERIFY_REQUEST || op == OP_REJECT_REQUEST
+          || op == OP_RECORD_REQUEST) ==> \false);
+
+  // req_eligible: criterio DEFINITIVO de elegibilidad de credenciales (Rev 5
+  // §8-ter / P-20). owner_id es elegible si existe >=1 registro VIGENTE
+  // (REQ_RECORDED) suyo en CAT_INSTITUTION_WORKED o CAT_LINK_PERIOD. REQ_SUPERSEDED
+  // queda excluido por construccion (no es REQ_RECORDED). Es el gemelo logico de la
+  // funcion C credential_eligible (src/credentials.c), igual que role_can refleja
+  // security_can; permite referenciar la elegibilidad en los contratos ACSL.
+  predicate req_eligible{L}(requests_state_t *rs, integer owner_id) =
+    \exists integer k; 0 <= k < rs->reqs_count
+      && rs->reqs[k].owner_id == owner_id
+      && rs->reqs[k].state == REQ_RECORDED
+      && (rs->reqs[k].category == CAT_INSTITUTION_WORKED
+          || rs->reqs[k].category == CAT_LINK_PERIOD);
 */
 #endif
 
@@ -289,6 +308,106 @@ int request_verify(educhain_state_t *st, requests_state_t *rs,
     disjoint behaviors success, log_full;
 */
 int request_reject(educhain_state_t *st, requests_state_t *rs,
+                   role_t caller_role, int caller_id, int req_id);
+
+/* --------------------------------------------------------------------------
+ * request_record: incorporacion al historial oficial. SOLO ADMIN (Rev 5 §5.4).
+ * Detecta la variante por el prev_id de la solicitud req_id que incorpora:
+ *   - Variante A (simple, prev_id == 0): REQ_VERIFIED -> REQ_RECORDED. El contenido
+ *     aprobado NO se altera (solo cambia state).
+ *   - Variante B (correccion, prev_id != 0): en la MISMA operacion logica,
+ *     req_id: REQ_VERIFIED -> REQ_RECORDED  Y  prev_id: REQ_RECORDED -> REQ_SUPERSEDED.
+ *     Validacion-R ANTES de mutar (patron "validar todo antes de mutar nada", §5.5):
+ *     prev existe; prev vigente REQ_RECORDED (rechaza re-sustituir un SUPERSEDED y la
+ *     2a de dos correcciones en carrera); mismo owner; coherencia T-1 (misma categoria;
+ *     institucion fijada por la categoria: igual si asocia, ambas 0 si no); req_id
+ *     verificada; hueco de log. Aciclicidad T-2 por transiciones de estado (SIN
+ *     recorrer la cadena prev_id): un REQ_SUPERSEDED (terminal) no vuelve a ser
+ *     prev_id, luego las cadenas incorporadas son lineales y finitas.
+ * ATOMICIDAD (BR-10): en cualquier error NINGUNO de los dos slots se modifica.
+ * El cambio del anterior se LIMITA a su campo state (ensures de inmutabilidad de
+ * owner/categoria/institution/metadatos/evidence_ref/fechas).
+ * -------------------------------------------------------------------------- */
+/*@ requires \valid(st) && \valid(rs);
+    requires \separated(st, rs);   // estados separados (Rev 5 §4.5)
+    requires 0 <= rs->reqs_count <= MAX_REQUESTS;
+    requires 0 <= st->log_count  <= MAX_EVENTS;
+    ensures \result == EDU_OK || \result == ERR_PERM || \result == ERR_BAD_ID
+         || \result == ERR_NOT_FOUND || \result == ERR_BAD_TRANSITION || \result == ERR_FULL;
+    // P-1 (mitad negativa): rol sin permiso de RECORD (todo rol != ADMIN) => se
+    // rechaza con ERR_PERM, o ERR_BAD_ID si ademas los ids estan fuera de rango
+    // (el rango se chequea antes del permiso, patron cred_transition). Se espera WP.
+    ensures !req_role_can(caller_role, OP_RECORD_REQUEST)
+            ==> (\result == ERR_PERM || \result == ERR_BAD_ID);
+    // request_record NUNCA crea ni borra solicitudes: el contador es invariante.
+    ensures rs->reqs_count == \old(rs->reqs_count);
+    // P-7 Variante A/B (positiva): en exito, req_id estaba REQ_VERIFIED y queda
+    // REQ_RECORDED (misma k). Se espera WP (misma clase que cred_transition P-7).
+    ensures \result == EDU_OK ==>
+            (\exists integer k; 0 <= k < rs->reqs_count && rs->reqs[k].id == req_id
+             && \old(rs->reqs[k].state) == REQ_VERIFIED && rs->reqs[k].state == REQ_RECORDED);
+    // --- Mejora ACSL #2: ensures EXPLICITOS de la doble transicion e inmutabilidad ---
+    // (b) En exito, el NUEVO registro (req_id) pasa a REQ_RECORDED (igual que P-7 arriba,
+    //     reiterado aqui por claridad de la doble transicion). Se espera WP (framing).
+    // (a) En exito de la Variante B (correccion, el req_id incorporado tenia prev_id != 0),
+    //     el registro ANTERIOR (el de id == \old(prev_id de req_id)) pasa de REQ_RECORDED
+    //     a REQ_SUPERSEDED (anclado en \old). En la Variante A (prev_id == 0) no hay anterior,
+    //     por eso el antecedente exige \old(prev_id) != 0. Se espera WP (misma clase que la
+    //     doble transicion de cred_transition cruzando audit_record_event: PENDIENTE honesto).
+    ensures \result == EDU_OK ==>
+            (\forall integer j; (0 <= j < rs->reqs_count && rs->reqs[j].id == req_id) ==>
+                (\old(rs->reqs[j].prev_id) != 0 ==>
+                    (\exists integer p; 0 <= p < rs->reqs_count
+                     && rs->reqs[p].id == \old(rs->reqs[j].prev_id)
+                     && \old(rs->reqs[p].state) == REQ_RECORDED
+                     && rs->reqs[p].state == REQ_SUPERSEDED)));
+    // (c) Inmutabilidad-salvo-state del registro ANTERIOR: en exito de la Variante B,
+    //     el anterior conserva TODOS sus campos EXCEPTO state (anclados en \old):
+    //     owner_id, category, institution_id, metadatos num_a..d, evidence_ref, prev_id,
+    //     submitter_id, verifier_id, endorser_id, start_date, end_date.
+    ensures \result == EDU_OK ==>
+            (\forall integer j; (0 <= j < rs->reqs_count && rs->reqs[j].id == req_id
+             && \old(rs->reqs[j].prev_id) != 0) ==>
+                (\forall integer p; (0 <= p < rs->reqs_count
+                 && rs->reqs[p].id == \old(rs->reqs[j].prev_id)) ==>
+                    (rs->reqs[p].owner_id       == \old(rs->reqs[p].owner_id)
+                  && rs->reqs[p].institution_id == \old(rs->reqs[p].institution_id)
+                  && rs->reqs[p].submitter_id   == \old(rs->reqs[p].submitter_id)
+                  && rs->reqs[p].verifier_id    == \old(rs->reqs[p].verifier_id)
+                  && rs->reqs[p].endorser_id    == \old(rs->reqs[p].endorser_id)
+                  && rs->reqs[p].category       == \old(rs->reqs[p].category)
+                  && rs->reqs[p].start_date     == \old(rs->reqs[p].start_date)
+                  && rs->reqs[p].end_date       == \old(rs->reqs[p].end_date)
+                  && rs->reqs[p].evidence_ref   == \old(rs->reqs[p].evidence_ref)
+                  && rs->reqs[p].prev_id        == \old(rs->reqs[p].prev_id)
+                  && rs->reqs[p].num_a          == \old(rs->reqs[p].num_a)
+                  && rs->reqs[p].num_b          == \old(rs->reqs[p].num_b)
+                  && rs->reqs[p].num_c          == \old(rs->reqs[p].num_c)
+                  && rs->reqs[p].num_d          == \old(rs->reqs[p].num_d))));
+    behavior success:
+      assumes st->log_count < MAX_EVENTS;
+      // --- Mejora ACSL #1: assigns acotado a los DOS slots concretos de la operacion ---
+      // Solo cambia el campo state de: (i) el slot de req_id (-> REQ_RECORDED) y (ii) en la
+      // Variante B, el slot del registro anterior, cuyo id == prev_id del propio req_id
+      // (-> REQ_SUPERSEDED). El set-comprehension restringe los indices escribibles a esos
+      // dos slots por su id (req_id, o prev_id de algun slot cuyo id sea req_id), en lugar
+      // de .state de TODOS los slots. Sigue siendo campo-state-only, asi la inmutabilidad
+      // de owner/institution_id/category/fechas/evidence_ref/prev_id/num_a..d se deriva del
+      // frame; ademas acota ahora QUE slots pueden cambiar (los dos involucrados, no todos).
+      assigns { rs->reqs[k].state | integer k;
+                0 <= k < rs->reqs_count
+                && (rs->reqs[k].id == req_id
+                    || (\exists integer j; 0 <= j < rs->reqs_count
+                        && rs->reqs[j].id == req_id
+                        && rs->reqs[k].id == rs->reqs[j].prev_id)) },
+              st->log[st->log_count], st->log_count;
+    behavior log_full:
+      assumes st->log_count >= MAX_EVENTS;
+      assigns \nothing;
+    complete behaviors;
+    disjoint behaviors success, log_full;
+*/
+int request_record(educhain_state_t *st, requests_state_t *rs,
                    role_t caller_role, int caller_id, int req_id);
 
 #endif /* EDUCHAIN_REQUESTS_H */
