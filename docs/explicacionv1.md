@@ -12,7 +12,7 @@ solo hay respaldo dinámico (pruebas) o queda pendiente, se distingue con honest
 > de credenciales ligada a ese flujo. La sección **§10** describe el flujo nuevo tal como lo
 > implementa el código (`include/requests.h`, `src/requests.c`, y las dos funciones añadidas en
 > `include/credentials.h` / `src/credentials.c`). La sección **§11** distingue con precisión qué
-> parte de la Rev 5 del diseño (`docs/diseno_flujo_solicitudes.md`) quedó **implementada** (Opción 2)
+> parte del diseño de la Etapa 2 (Rev 5) quedó **implementada** (Opción 2)
 > y qué parte quedó **especificada pero NO implementada** (Opción 3). Todo lo previo (§1–§9) se
 > conserva: sigue describiendo el estado de los cinco módulos base.
 
@@ -533,7 +533,7 @@ INSTITUTION solo con vínculo activo, no autovalidación en verify/reject, solo 
 
 ## 11. Rev 5 del diseño: qué quedó implementado (Opción 2) y qué NO (Opción 3)
 
-El diseño de referencia `docs/diseno_flujo_solicitudes.md` (Rev 5) describe un alcance mayor que el
+El diseño de referencia de la Etapa 2 (Rev 5) describía un alcance mayor que el
 implementado. La decisión del proyecto fue acotar a la **Opción 2** (contrato pequeño, coherente y
 verificable) y dejar la **Opción 3** (gestión administrativa institucional) **especificada pero no
 implementada**. Esta sección delimita la frontera con exactitud, verificada contra el código.
@@ -554,7 +554,7 @@ implementada**. Esta sección delimita la frontera con exactitud, verificada con
 
 ### 11.2 Especificado en la Rev 5 pero NO implementado (Opción 3)
 
-Lo siguiente aparece diseñado con contratos en `docs/diseno_flujo_solicitudes.md` pero **no** existe
+Lo siguiente aparece en el diseño de la Etapa 2 (Opción 3) pero **no** existe
 en el código (confirmado: no hay símbolos para estas funciones en `src/`):
 
 - **Gestión de representación en runtime (authz):** `authz_grant` / `authz_revoke` (ADMIN puebla y
