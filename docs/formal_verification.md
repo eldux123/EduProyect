@@ -601,7 +601,7 @@ re-ejecución y versionada; NO toca `wp_results.txt` ni `wp_results_baseline.txt
 |-----------------|-------------------|--------|-------|-------------------|
 | `cred_transition_ensures` | result-set de la auxiliar | Failure | framing a través de `audit_record_event` (ya Failure en base) | test_credentials, A6/A7 |
 | `cred_transition_ensures_2` | atomicidad `creds_count==\old` | Failure | framing struct ~7 KB vía audit | A6/A7 |
-| ~~`cred_transition_ensures_3`~~ | **P-1 (`role_can`) — DEMOSTRADA (corregida, BLOQUEANTE-5)** | **Proved** | Antes rotulada aquí como *Timeout* por "caso-split de `role_can`", pero la causa raíz era un **contraejemplo**: con el consecuente `\result==ERR_PERM` a secas la postcondición era insatisfacible en el camino `ERR_BAD_ID` (p. ej. `caller_id=0` con rol no autorizado), porque el cuerpo chequea el rango de ids **antes** del permiso. Al condicionar el consecuente a `(\result==ERR_PERM \|\| \result==ERR_BAD_ID)` —mismo patrón que la mitad negativa de P-8 (#4) y P-2 (#3)— la obligación **cierra** (Alt-Ergo, aislada `_run_fct.sh cred_transition` → 51/55; `ensures_3` ya NO aparece en la lista de Failure/Timeout). Fortalecimiento honesto, no debilitamiento: sigue afirmando que un rol sin permiso nunca tiene éxito | matriz en security.c 114/114; A6/A7 |
+| `cred_transition_ensures_3` | **P-1 (`role_can`) — corregida (BLOQUEANTE-5), aún no demostrada en el módulo** | Timeout | La anotación se corrigió condicionando el consecuente a `(\result==ERR_PERM \|\| \result==ERR_BAD_ID)` —mismo patrón que la mitad negativa de P-8 (#4) y P-2 (#3)—, lo que elimina el contraejemplo `ERR_BAD_ID`. El fortalecimiento es honesto (sigue afirmando que un rol sin permiso nunca tiene éxito). Sobre el módulo completo la obligación sigue en **Timeout** a 20 s según el artefacto versionado `wp_results_fase4_credentials.txt` (`[Timeout] typed_cred_transition_ensures_3`): el case-split de `role_can` combinado con el framing a través de `audit_record_event` no cierra en el presupuesto de tiempo | matriz en security.c 114/114; A6/A7 |
 | `cred_transition_ensures_4/5` | P-7 from→to (existencial) | Failure | existencial post-estado perdido tras la llamada de audit | A6 (transiciones legales) |
 | `credential_activate/block/reactivate_ensures_2` | P-1 por rol en el wrapper | Failure | `role_can` no se despliega bien para Alt-Ergo (resp. "unrecognized"); ya Failure en base | A6, A7 |
 | `credential_issue_ensures/_ensures_2/_space_assigns_part18` | atomicidad + frame de audit | Failure/Timeout | framing struct ~7 KB (ya Failure en base) | test_credentials, A-full |
@@ -619,13 +619,26 @@ los Timeout expiran a los 20 s. No se observó ningún **Unknown**. No se subió
 timeout ni se añadieron `assumes` para forzar cierres (reglas inquebrantables del proyecto).
 
 **Corrección BLOQUEANTE-5 (ronda de revisión):** `cred_transition_ensures_3` (P-1) estaba rotulada
-arriba como *Timeout por caso-split de `role_can`*, enmascarando un **contraejemplo real**: el
+originalmente como *Timeout por caso-split de `role_can`*, enmascarando un **contraejemplo real**: el
 consecuente `\result==ERR_PERM` era insatisfacible en el camino `ERR_BAD_ID` (el cuerpo chequea el
-rango de ids antes del permiso). Se corrigió condicionando el consecuente a
+rango de ids antes del permiso). Se corrigió la anotación condicionando el consecuente a
 `(\result==ERR_PERM || \result==ERR_BAD_ID)` —el mismo patrón ya aplicado a la mitad negativa de P-8
-(`credential_revoke`) y a P-2 (`experience_validate`)—; la obligación ahora **cierra** y se
-reclasificó en la tabla. Es fortalecimiento de spec (afirma que un rol sin permiso nunca tiene éxito),
-no debilitamiento. No quedan contraejemplos enmascarados como framing en esta sección.
+(`credential_revoke`) y a P-2 (`experience_validate`)—, lo que **elimina el contraejemplo**. Es
+fortalecimiento de spec (afirma que un rol sin permiso nunca tiene éxito), no debilitamiento, y ya no
+queda un contraejemplo enmascarado como framing. **Estado formal según el artefacto versionado**
+(`wp_results_fase4_credentials.txt`, estado "después" del módulo): la obligación **sigue en
+`[Timeout]`** a 20 s —el case-split de `role_can` junto con el framing a través de
+`audit_record_event` no cierra en el presupuesto de tiempo— y así queda clasificada en la tabla de
+pendientes (no se declara *Proved* sin salida de Frama-C del módulo que lo reproduzca). El respaldo
+dinámico es `security.c` 114/114 (la matriz `role_can` cierra entera) y A6/A7.
+
+**Nota de coherencia reporte-artefacto (BLOQUEANTE-1, segunda ronda):** una revisión posterior
+señaló que una redacción previa de esta sección rotulaba `cred_transition_ensures_3` como
+*Proved/DEMOSTRADA* apoyándose en una corrida aislada no versionada (`_run_fct.sh cred_transition`),
+mientras el artefacto de módulo versionado la mantenía en `[Timeout]` con total `298/315`. Se eliminó
+esa afirmación: el estado reportado es ahora el del artefacto versionado (`Timeout`, `298/315`). La
+anotación ACSL corregida permanece intacta en `src/credentials.c`; lo único que cambió es la
+clasificación documental, que ahora coincide con `wp_results_fase4_credentials.txt`.
 
 ### Eva — re-ejecución (números REALES vigentes)
 
