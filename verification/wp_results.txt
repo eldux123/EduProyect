@@ -1,0 +1,93 @@
+# EduChain - WP resultados FASE 4 (estado actual)
+# Generado: 2026-11-19 01:59 UTC
+# Frama-C: 33.0 (Arsenic)  | provers: alt-ergo,z3  | timeout 20s
+# La linea base original se conserva en verification/wp_results_baseline.txt
+
+#### src/security.c ####
+[wp] Proved goals:  105 / 105
+  Terminating:     1
+  Unreachable:     1
+  Qed:           103
+
+#### src/audit.c ####
+[wp] Proved goals:   98 / 98
+  Terminating:     3
+  Unreachable:     3
+  Qed:            65 (1ms-15ms-219ms)
+  Alt-Ergo :      27 (9ms-94ms-274ms)
+
+#### src/professionals.c ####
+[wp] [Timeout] typed_professional_register_ensures_2 (Qed 211ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_professional_register_ensures (Qed 479ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_professional_register_assigns_normal_part13 (Qed 83ms) (Alt-Ergo) (No Cache)
+[wp] Proved goals:   78 / 81
+  Terminating:     1
+  Unreachable:     1
+  Qed:            64 (4ms-13ms-479ms)
+  Alt-Ergo :      12 (16ms-38ms-70ms)
+  Failed:          2
+  Timeout:         1
+
+#### src/experience.c ####
+[wp] [Timeout] typed_experience_register_ensures_7 (Qed 3s) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_register_ensures_6 (Qed 416ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_experience_register_ensures_5 (Qed 301ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_experience_register_ensures_4 (Qed 418ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_register_ensures_3 (Qed 906ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_ensures_2 (Qed 857ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_register_ensures (Qed 4.7s) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_experience_register_ensures_8 (Qed 5.0s) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_register_assigns_normal_part08 (Qed 54ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part07 (Qed 67ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part22 (Qed 98ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part21 (Qed 88ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part20 (Qed 106ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part19 (Qed 92ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part18 (Qed 84ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part17 (Qed 84ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_register_assigns_normal_part24 (Qed 151ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_register_assigns_exit_part04 (Qed 57ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part03 (Qed 55ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part09 (Qed 81ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part08 (Qed 85ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part07 (Qed 94ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part12 (Qed 122ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part11 (Qed 101ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part10 (Qed 98ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_professional_is_active_requires (Qed 60ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_audit_record_event_requires_2 (Qed 115ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_experience_find_requires_2 (Qed 65ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_professional_is_active_requires_2 (Qed 73ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_validate_ensures_3 (Qed 501ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_validate_ensures_2 (Qed 236ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_validate_ensures (Qed 536ms) (Alt-Ergo) (No Cache)
+[wp] Proved goals:  146 / 178
+  Terminating:     2
+  Unreachable:     2
+  Qed:           116 (4ms-116ms-5.0s)
+  Alt-Ergo :      26 (29ms-82ms-197ms)
+  Failed:          8
+  Timeout:        24
+
+#### src/credentials.c ####
+[wp] [Timeout] typed_credential_issue_ensures_2 (Qed 357ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_credential_issue_ensures (Qed 952ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_credential_issue_assigns_normal_part18 (Qed 95ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_credential_activate_ensures_2 (Qed 8ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_credential_block_ensures_2 (Qed 8ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_credential_reactivate_ensures_2 (Qed 9ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_credential_revoke_ensures_4 (Qed 511ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_credential_revoke_ensures_2 (Qed 216ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_credential_revoke_ensures (Qed 399ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_credential_status_ensures (Qed 33ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_credential_is_valid_ensures_2 (Qed 7ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_cred_transition_ensures_2 (Qed 353ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_cred_transition_ensures (Qed 338ms) (Alt-Ergo) (No Cache)
+[wp] Proved goals:  226 / 239
+  Terminating:     3
+  Unreachable:     3
+  Qed:           189 (3ms-17ms-952ms)
+  Alt-Ergo :      31 (18ms-47ms-84ms)
+  Failed:          9
+  Timeout:         4
+

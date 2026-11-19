@@ -152,14 +152,19 @@ typedef struct {
 ```
          issue            activate
    (∅) ----------> PENDING ----------> ACTIVE
-                      |                  |  \
-                      | block            |   \ block
-                      v                  v    v
-                   (ilegal)           BLOCKED <--- (desde ACTIVE)
-                                         |
-                                         | revoke / reactivate?
-                                         v
-   revoke desde ACTIVE/BLOCKED ----> REVOKED  (terminal)
+                      |                  |  ^
+                      |                  |  | reactivate (BLOCKED -> ACTIVE)
+                      | revoke     block |  |
+                      |                  v  |
+                      |               BLOCKED
+                      |                  |
+                      |  revoke          | revoke
+                      v                  v
+                   REVOKED <-------------+
+                   (terminal)
+
+   revoke permitido desde PENDING, ACTIVE o BLOCKED  ->  REVOKED (terminal)
+   reactivate permitido solo desde BLOCKED -> ACTIVE (ADMIN/COORD)
 ```
 
 Transiciones **permitidas** (todo lo demás se rechaza con `ERR_BAD_TRANSITION`):
@@ -292,6 +297,28 @@ de límites y de ciertos desbordamientos, atomicidad en error.
 
 **Lo que el núcleo NO garantiza:** veracidad del mundo real de los datos (un hash o un ID no prueban que
 algo ocurrió), persistencia, cifrado, control de concurrencia, ni seguridad de la capa de aplicación.
+
+**Límites explícitos de trazabilidad y enforcement (identificados en la auditoría de seguridad, Fase 4):**
+- **Auditoría solo de operaciones exitosas (S-12).** `audit_record_event` se invoca únicamente en la
+  rama de éxito. Los intentos **rechazados** (`ERR_PERM`, `ERR_SELF_VALIDATE`, `ERR_BAD_TRANSITION`,
+  etc.) **no dejan rastro** en el log. El campo `event_t.result` existe pero hoy siempre vale `EDU_OK`.
+  Decisión actual: documentarlo como límite; auditar intentos fallidos queda como mejora (requiere
+  cambio funcional, respetando capacidad del log). Un auditor que quiera ver intentos de violación
+  debe asumir que el núcleo no los registra todavía.
+- **R-6 sin punto de enforcement interno (S-6).** El núcleo expone `credential_is_valid`/
+  `credential_status` (solo lectura) pero **no tiene ninguna operación que "consuma" una credencial**.
+  La regla "no usar credenciales BLOCKED/REVOKED" se cumple como *consulta correcta*; su *aplicación*
+  (no actuar si no está ACTIVE) depende de que la capa externa llame a `credential_is_valid` antes de
+  operar. Es un control delegado, no interno.
+- **Orden de códigos de error (S-9).** La verificación de permiso (`ERR_PERM`) ocurre **antes** que la
+  de existencia/estado (`ERR_NOT_FOUND`/`ERR_BAD_TRANSITION`), por lo que un rol **no autorizado** no
+  obtiene un oráculo de existencia (siempre recibe `ERR_PERM`). Para roles **autorizados**, los códigos
+  distintos de `ERR_PERM` revelan estado interno; es aceptable (ya pueden leer estado) pero la capa
+  externa no debe reenviar esos códigos a `ROLE_VERIFIER`/terceros.
+- **Append-only como convención de API (S-11).** `audit_record_event` es la única vía de escritura del
+  log y es append-only con `seq` creciente, pero al ser `educhain_state_t` una struct pública, nada
+  impide a código externo escribir `st->log[]` directamente. La garantía append-only es de API, no
+  estructural.
 
 ---
 

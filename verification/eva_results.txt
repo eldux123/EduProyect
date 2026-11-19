@@ -1,0 +1,686 @@
+[kernel] Parsing src/security.c (with preprocessing)
+[kernel] Parsing src/audit.c (with preprocessing)
+[kernel] Parsing src/professionals.c (with preprocessing)
+[kernel] Parsing src/experience.c (with preprocessing)
+[kernel] Parsing src/credentials.c (with preprocessing)
+[kernel] Parsing verification/eva_harness.c (with preprocessing)
+[eva] Analyzing a complete application starting at eva_main
+[eva:initial-state] Values of globals at initialization
+  eva_main_st ∈ {0}
+[kernel:annot:missing-spec] verification/eva_harness.c:18: Warning: 
+  Neither code nor specification for function Frama_C_interval, generating
+  default assigns. See -generated-spec-* options for more info.
+[eva] using specification for function Frama_C_interval
+[eva:alarm] include/security.h:17: Warning: 
+  function security_can: postcondition got status unknown.
+[eva:alarm] include/security.h:35: Warning: 
+  function security_can: postcondition got status unknown.
+[eva:alarm] include/professionals.h:23: Warning: 
+  function professional_register: postcondition got status unknown.
+[eva:partition] src/professionals.c:18: starting to merge loop iterations
+[eva:alarm] src/professionals.c:13: Warning: loop invariant got status unknown.
+[eva:alarm] src/professionals.c:14: Warning: loop invariant got status unknown.
+[eva:alarm] include/audit.h:17: Warning: 
+  function audit_record_event: postcondition got status unknown.
+[eva:alarm] include/audit.h:29: Warning: 
+  function audit_record_event, behavior ok: postcondition got status unknown.
+[eva:alarm] include/audit.h:33: Warning: 
+  function audit_record_event, behavior ok: postcondition got status unknown.
+[eva:alarm] include/audit.h:35: Warning: 
+  function audit_record_event, behavior ok: postcondition got status unknown.
+[eva:alarm] include/professionals.h:28: Warning: 
+  function professional_register: postcondition got status unknown.
+[eva:alarm] include/professionals.h:26: Warning: 
+  function professional_register: postcondition got status unknown.
+[eva:alarm] include/security.h:19: Warning: 
+  function security_can: postcondition got status unknown.
+[eva:alarm] include/professionals.h:36: Warning: 
+  function professional_find: postcondition got status unknown.
+[eva:alarm] include/experience.h:24: Warning: 
+  function experience_register: postcondition got status unknown.
+[eva:alarm] include/experience.h:26: Warning: 
+  function experience_register: postcondition got status unknown.
+[eva:alarm] include/experience.h:28: Warning: 
+  function experience_register: postcondition got status unknown.
+[eva:alarm] include/security.h:21: Warning: 
+  function security_can: postcondition got status unknown.
+[eva:partition] src/experience.c:19: starting to merge loop iterations
+[eva:alarm] src/experience.c:14: Warning: loop invariant got status unknown.
+[eva:alarm] src/experience.c:15: Warning: loop invariant got status unknown.
+[eva:alarm] include/experience.h:89: Warning: 
+  function experience_find: postcondition got status unknown.
+[eva:alarm] include/experience.h:90: Warning: 
+  function experience_find: postcondition got status unknown.
+[eva:alarm] include/audit.h:18: Warning: 
+  function audit_record_event: postcondition got status unknown.
+[eva:alarm] include/experience.h:67: Warning: 
+  function experience_validate: postcondition got status unknown.
+[eva:alarm] include/experience.h:70: Warning: 
+  function experience_validate: postcondition got status unknown.
+[eva:alarm] include/security.h:23: Warning: 
+  function security_can: postcondition got status unknown.
+[eva:partition] src/credentials.c:31: starting to merge loop iterations
+[eva:alarm] include/audit.h:19: Warning: 
+  function audit_record_event: postcondition got status unknown.
+[eva:alarm] include/security.h:25: Warning: 
+  function security_can: postcondition got status unknown.
+[eva:partition] src/credentials.c:15: starting to merge loop iterations
+[eva:partition] src/experience.c:145: starting to merge loop iterations
+[eva:alarm] src/experience.c:140: Warning: loop invariant got status unknown.
+[eva:alarm] src/experience.c:141: Warning: loop invariant got status unknown.
+[eva:alarm] include/experience.h:103: Warning: 
+  function experience_validated_count: postcondition got status unknown.
+[eva:alarm] include/audit.h:58: Warning: 
+  function audit_get_count: postcondition got status unknown.
+[eva:partition] src/audit.c:50: starting to merge loop iterations
+[eva:alarm] src/audit.c:45: Warning: loop invariant got status unknown.
+[eva:alarm] src/audit.c:46: Warning: loop invariant got status unknown.
+[eva:alarm] include/audit.h:47: Warning: 
+  function audit_verify_event: postcondition got status unknown.
+[eva:alarm] include/audit.h:48: Warning: 
+  function audit_verify_event: postcondition got status unknown.
+[eva:alarm] include/audit.h:49: Warning: 
+  function audit_verify_event: postcondition got status unknown.
+[eva] ====== VALUES COMPUTED ======
+[eva:final-states] Values at end of function audit_get_count:
+  __retres ∈ [0..9]
+[eva:final-states] Values at end of function audit_record_event:
+  next_seq ∈ [1..9]
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [--..--]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds[0].state ∈
+             {CRED_PENDING; CRED_ACTIVE; CRED_BLOCKED; CRED_REVOKED}
+             .creds[1..63] ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ [0..9]
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ [0..8]
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ [0..9]
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ [0..8]
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ [0..9]
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4; 5; 6; 7; 8}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ [0..9]
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4; 5; 6; 7; 8}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ [0..9]
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4; 5; 6; 7; 8}
+             .log[4].target_id ∈ [0..2000000000]
+             .log[4].result ∈ {0}
+             .log[5].seq ∈ [0..9]
+             .log[5].actor_id ∈ [0..2000000000]
+             .log[5].op_code ∈ {0; 5; 6; 7; 8}
+             .log[5].target_id ∈ [0..2000000000]
+             .log[5].result ∈ {0}
+             .log[6].seq ∈ [0..9]
+             .log[6].actor_id ∈ [0..2000000000]
+             .log[6].op_code ∈ {0; 6; 7; 8}
+             .log[6].target_id ∈ [0..2000000000]
+             .log[6].result ∈ {0}
+             .log[7].seq ∈ [0..9]
+             .log[7].actor_id ∈ [0..2000000000]
+             .log[7].op_code ∈ {0; 7; 8}
+             .log[7].target_id ∈ [0..2000000000]
+             .log[7].result ∈ {0}
+             .log[8].seq ∈ [0..9]
+             .log[8].actor_id ∈ [0..2000000000]
+             .log[8].op_code ∈ {0; 8}
+             .log[8].target_id ∈ [0..2000000000]
+             .log{[8].result; [9..1023]} ∈ {0}
+             .log_count ∈ [1..9]
+  __retres ∈ {0}
+[eva:final-states] Values at end of function audit_verify_event:
+  i ∈ [0..9]
+  __retres ∈ [-1..8]
+[eva:final-states] Values at end of function cred_find:
+  i ∈ {0; 1}
+  __retres ∈ {-1; 0}
+[eva:final-states] Values at end of function cred_find_by_owner:
+  i ∈ {0}
+  __retres ∈ {-1}
+[eva:final-states] Values at end of function credential_status:
+  i ∈ {0; 1}
+  __retres ∈ {-1; 0; 1; 2; 3}
+[eva:final-states] Values at end of function credential_is_valid:
+  
+[eva:final-states] Values at end of function date_in_range:
+  
+[eva:final-states] Values at end of function experience_find:
+  i ∈ {0; 1}
+  __retres ∈ {-1; 0}
+[eva:final-states] Values at end of function professional_find:
+  i ∈ {0; 1; 2}
+  __retres ∈ {-1; 0; 1}
+[eva:final-states] Values at end of function professional_is_active:
+  idx ∈ {-1; 0; 1}
+  __retres ∈ {0; 1}
+[eva:final-states] Values at end of function experience_validated_count:
+  count ∈ {0; 1}
+  i ∈ {0; 1} or UNINITIALIZED
+  __retres ∈ {-7; -5; 0; 1}
+[eva:final-states] Values at end of function security_can:
+  __retres ∈ {0; 1}
+[eva:final-states] Values at end of function cred_transition:
+  idx ∈ {-1; 0} or UNINITIALIZED
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds[0].state ∈ {CRED_PENDING; CRED_ACTIVE; CRED_BLOCKED}
+             .creds[1..63] ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ [0..8]
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ [0..8]
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ [0..8]
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4; 5; 6; 7}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ [0..8]
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4; 5; 6; 7}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ [0..8]
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4; 5; 6; 7}
+             .log[4].target_id ∈ [0..2000000000]
+             .log[4].result ∈ {0}
+             .log[5].seq ∈ [0..8]
+             .log[5].actor_id ∈ [0..2000000000]
+             .log[5].op_code ∈ {0; 5; 6; 7}
+             .log[5].target_id ∈ [0..2000000000]
+             .log[5].result ∈ {0}
+             .log[6].seq ∈ [0..8]
+             .log[6].actor_id ∈ [0..2000000000]
+             .log[6].op_code ∈ {0; 6; 7}
+             .log[6].target_id ∈ [0..2000000000]
+             .log[6].result ∈ {0}
+             .log[7].seq ∈ [0..8]
+             .log[7].actor_id ∈ [0..2000000000]
+             .log[7].op_code ∈ {0; 7}
+             .log[7].target_id ∈ [0..2000000000]
+             .log{[7].result; [8..1023]} ∈ {0}
+             .log_count ∈ [0..8]
+  __retres ∈ {-9; -7; -5; -2; 0}
+[eva:final-states] Values at end of function credential_activate:
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds[0].state ∈ {CRED_PENDING; CRED_ACTIVE}
+             .creds[1..63] ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1; 2; 3; 4; 5}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1; 2; 3; 4; 5}
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4; 5}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4; 5}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4; 5}
+             .log[4].target_id ∈ [0..2000000000]
+             .log[4].result ∈ {0}
+             .log[5].seq ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[5].actor_id ∈ [0..2000000000]
+             .log[5].op_code ∈ {0; 5}
+             .log[5].target_id ∈ [0..2000000000]
+             .log{[5].result; [6..1023]} ∈ {0}
+             .log_count ∈ {0; 1; 2; 3; 4; 5; 6}
+[eva:final-states] Values at end of function credential_block:
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds[0].state ∈ {CRED_PENDING; CRED_ACTIVE; CRED_BLOCKED}
+             .creds[1..63] ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1; 2; 3; 4; 5; 6}
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4; 5; 6}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4; 5; 6}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4; 5; 6}
+             .log[4].target_id ∈ [0..2000000000]
+             .log[4].result ∈ {0}
+             .log[5].seq ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[5].actor_id ∈ [0..2000000000]
+             .log[5].op_code ∈ {0; 5; 6}
+             .log[5].target_id ∈ [0..2000000000]
+             .log[5].result ∈ {0}
+             .log[6].seq ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[6].actor_id ∈ [0..2000000000]
+             .log[6].op_code ∈ {0; 6}
+             .log[6].target_id ∈ [0..2000000000]
+             .log{[6].result; [7..1023]} ∈ {0}
+             .log_count ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+[eva:final-states] Values at end of function credential_issue:
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds{[0].state; [1..63]} ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ {0; 1; 2; 3; 4; 5}
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1; 2; 3; 4}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ {0; 1; 2; 3; 4; 5}
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1; 2; 3; 4}
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ {0; 1; 2; 3; 4; 5}
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ {0; 1; 2; 3; 4; 5}
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ {0; 1; 2; 3; 4; 5}
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4}
+             .log[4].target_id ∈ [0..2000000000]
+             .log{[4].result; [5..1023]} ∈ {0}
+             .log_count ∈ {0; 1; 2; 3; 4; 5}
+  __retres ∈ {-7; -5; -2; 0}
+[eva:final-states] Values at end of function credential_reactivate:
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds[0].state ∈ {CRED_PENDING; CRED_ACTIVE; CRED_BLOCKED}
+             .creds[1..63] ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ [0..8]
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ [0..8]
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1; 2; 3; 4; 5; 6; 7}
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ [0..8]
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4; 5; 6; 7}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ [0..8]
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4; 5; 6; 7}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ [0..8]
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4; 5; 6; 7}
+             .log[4].target_id ∈ [0..2000000000]
+             .log[4].result ∈ {0}
+             .log[5].seq ∈ [0..8]
+             .log[5].actor_id ∈ [0..2000000000]
+             .log[5].op_code ∈ {0; 5; 6; 7}
+             .log[5].target_id ∈ [0..2000000000]
+             .log[5].result ∈ {0}
+             .log[6].seq ∈ [0..8]
+             .log[6].actor_id ∈ [0..2000000000]
+             .log[6].op_code ∈ {0; 6; 7}
+             .log[6].target_id ∈ [0..2000000000]
+             .log[6].result ∈ {0}
+             .log[7].seq ∈ [0..8]
+             .log[7].actor_id ∈ [0..2000000000]
+             .log[7].op_code ∈ {0; 7}
+             .log[7].target_id ∈ [0..2000000000]
+             .log{[7].result; [8..1023]} ∈ {0}
+             .log_count ∈ [0..8]
+[eva:final-states] Values at end of function credential_revoke:
+  idx ∈ {-1; 0} or UNINITIALIZED
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds[0].state ∈
+             {CRED_PENDING; CRED_ACTIVE; CRED_BLOCKED; CRED_REVOKED}
+             .creds[1..63] ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ [0..9]
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ [0..8]
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ [0..9]
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ [0..8]
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ [0..9]
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4; 5; 6; 7; 8}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ [0..9]
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4; 5; 6; 7; 8}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ [0..9]
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4; 5; 6; 7; 8}
+             .log[4].target_id ∈ [0..2000000000]
+             .log[4].result ∈ {0}
+             .log[5].seq ∈ [0..9]
+             .log[5].actor_id ∈ [0..2000000000]
+             .log[5].op_code ∈ {0; 5; 6; 7; 8}
+             .log[5].target_id ∈ [0..2000000000]
+             .log[5].result ∈ {0}
+             .log[6].seq ∈ [0..9]
+             .log[6].actor_id ∈ [0..2000000000]
+             .log[6].op_code ∈ {0; 6; 7; 8}
+             .log[6].target_id ∈ [0..2000000000]
+             .log[6].result ∈ {0}
+             .log[7].seq ∈ [0..9]
+             .log[7].actor_id ∈ [0..2000000000]
+             .log[7].op_code ∈ {0; 7; 8}
+             .log[7].target_id ∈ [0..2000000000]
+             .log[7].result ∈ {0}
+             .log[8].seq ∈ [0..9]
+             .log[8].actor_id ∈ [0..2000000000]
+             .log[8].op_code ∈ {0; 8}
+             .log[8].target_id ∈ [0..2000000000]
+             .log{[8].result; [9..1023]} ∈ {0}
+             .log_count ∈ [0..9]
+  __retres ∈ {-7; -5; -2; 0}
+[eva:final-states] Values at end of function experience_register:
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [--..--]
+             .exps{[0]{.state; .validator_id}; [1..255]} ∈ {0}
+             .exps_count ∈ {0; 1}
+             {.creds[0..63]; .creds_count} ∈ {0}
+             .log[0].seq ∈ {0; 1; 2; 3}
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1; 2}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ {0; 1; 2; 3}
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1; 2}
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ {0; 1; 2; 3}
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2}
+             .log[2].target_id ∈ [0..2000000000]
+             .log{[2].result; [3..1023]} ∈ {0}
+             .log_count ∈ {0; 1; 2; 3}
+  __retres ∈ {-7; -6; -5; -2; 0}
+[eva:final-states] Values at end of function experience_validate:
+  idx ∈ {-1; 0} or UNINITIALIZED
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             {.creds[0..63]; .creds_count} ∈ {0}
+             .log[0].seq ∈ {0; 1; 2; 3; 4}
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1; 2; 3}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ {0; 1; 2; 3; 4}
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1; 2; 3}
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ {0; 1; 2; 3; 4}
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ {0; 1; 2; 3; 4}
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3}
+             .log[3].target_id ∈ [0..2000000000]
+             .log{[3].result; [4..1023]} ∈ {0}
+             .log_count ∈ {0; 1; 2; 3; 4}
+  __retres ∈ {-7; -5; -3; -2; 0}
+[eva:final-states] Values at end of function professional_register:
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             {.exps[0..255]; .exps_count; .creds[0..63]; .creds_count} ∈ {0}
+             .log[0].seq ∈ {0; 1; 2}
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ {0; 1}
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ {0; 1; 2}
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ {0; 1}
+             .log[1].target_id ∈ [0..2000000000]
+             .log{[1].result; [2..1023]} ∈ {0}
+             .log_count ∈ {0; 1; 2}
+  __retres ∈ {-7; -4; -2; 0}
+[eva:final-states] Values at end of function eva_main:
+  r1 ∈ [--..--]
+  r2 ∈ [--..--]
+  caller ∈ [--..--]
+  id1 ∈ [--..--]
+  id2 ∈ [--..--]
+  cid ∈ [--..--]
+  sd ∈ [--..--]
+  ed ∈ [--..--]
+  eva_main_st.pros[0].id ∈ [0..2000000000]
+             .pros[0].active ∈ {0; 1}
+             .pros[1].id ∈ [0..2000000000]
+             .pros[1].active ∈ {0; 1}
+             .pros[2..63] ∈ {0}
+             .pros_count ∈ {0; 1; 2}
+             .exps[0]{.id; .owner_id} ∈ [0..2000000000]
+             .exps[0]{.start_date; .end_date} ∈ [0..21001231]
+             .exps[0].state ∈ {EXP_PENDING; EXP_VALIDATED}
+             .exps[0].validator_id ∈ [0..2000000000]
+             .exps[1..255] ∈ {0}
+             .exps_count ∈ {0; 1}
+             .creds[0]{.id; .owner_id} ∈ [0..2000000000]
+             .creds[0].state ∈
+             {CRED_PENDING; CRED_ACTIVE; CRED_BLOCKED; CRED_REVOKED}
+             .creds[1..63] ∈ {0}
+             .creds_count ∈ {0; 1}
+             .log[0].seq ∈ [0..9]
+             .log[0].actor_id ∈ [0..2000000000]
+             .log[0].op_code ∈ [0..8]
+             .log[0].target_id ∈ [0..2000000000]
+             .log[0].result ∈ {0}
+             .log[1].seq ∈ [0..9]
+             .log[1].actor_id ∈ [0..2000000000]
+             .log[1].op_code ∈ [0..8]
+             .log[1].target_id ∈ [0..2000000000]
+             .log[1].result ∈ {0}
+             .log[2].seq ∈ [0..9]
+             .log[2].actor_id ∈ [0..2000000000]
+             .log[2].op_code ∈ {0; 2; 3; 4; 5; 6; 7; 8}
+             .log[2].target_id ∈ [0..2000000000]
+             .log[2].result ∈ {0}
+             .log[3].seq ∈ [0..9]
+             .log[3].actor_id ∈ [0..2000000000]
+             .log[3].op_code ∈ {0; 3; 4; 5; 6; 7; 8}
+             .log[3].target_id ∈ [0..2000000000]
+             .log[3].result ∈ {0}
+             .log[4].seq ∈ [0..9]
+             .log[4].actor_id ∈ [0..2000000000]
+             .log[4].op_code ∈ {0; 4; 5; 6; 7; 8}
+             .log[4].target_id ∈ [0..2000000000]
+             .log[4].result ∈ {0}
+             .log[5].seq ∈ [0..9]
+             .log[5].actor_id ∈ [0..2000000000]
+             .log[5].op_code ∈ {0; 5; 6; 7; 8}
+             .log[5].target_id ∈ [0..2000000000]
+             .log[5].result ∈ {0}
+             .log[6].seq ∈ [0..9]
+             .log[6].actor_id ∈ [0..2000000000]
+             .log[6].op_code ∈ {0; 6; 7; 8}
+             .log[6].target_id ∈ [0..2000000000]
+             .log[6].result ∈ {0}
+             .log[7].seq ∈ [0..9]
+             .log[7].actor_id ∈ [0..2000000000]
+             .log[7].op_code ∈ {0; 7; 8}
+             .log[7].target_id ∈ [0..2000000000]
+             .log[7].result ∈ {0}
+             .log[8].seq ∈ [0..9]
+             .log[8].actor_id ∈ [0..2000000000]
+             .log[8].op_code ∈ {0; 8}
+             .log[8].target_id ∈ [0..2000000000]
+             .log{[8].result; [9..1023]} ∈ {0}
+             .log_count ∈ [0..9]
+  __retres ∈ {0}
+[eva:summary] ====== ANALYSIS SUMMARY ======
+  ----------------------------------------------------------------------------
+  23 functions analyzed (out of 23): 100% coverage.
+  In these functions, 440 statements reached (out of 544): 81% coverage.
+  ----------------------------------------------------------------------------
+  Some errors and warnings have been raised during the analysis:
+    by the Eva analyzer:      0 errors    0 warnings
+    by the Frama-C kernel:    0 errors    1 warning
+  ----------------------------------------------------------------------------
+  0 alarms generated by the analysis.
+  ----------------------------------------------------------------------------
+  Evaluation of the logical properties reached by the analysis:
+    Assertions        2 valid     8 unknown     0 invalid     10 total
+    Preconditions    54 valid     0 unknown     0 invalid     54 total
+  87% of the logical properties reached have been proven.
+  ----------------------------------------------------------------------------
