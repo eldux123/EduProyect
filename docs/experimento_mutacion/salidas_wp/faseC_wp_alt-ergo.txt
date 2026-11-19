@@ -1,0 +1,18 @@
+### FASE C.1 - MUTADO - prover alt-ergo,z3 (contraste: Timeout, NO prueba deteccion)
+### frama-c -wp -wp-rte -wp-prover alt-ergo,z3 -wp-cache none -wp-timeout 20 -wp-fct security_can -cpp-extra-args=-I/tmp/educhain_mutacion/mutado/include -I/tmp/educhain_mutacion/mutado/verification src/security.c
+[kernel] Parsing src/security.c (with preprocessing)
+[wp] Running WP plugin...
+[wp] Warning: Skipped RTE guards: unaligned pointers (\aligned not supported)
+[wp] Warning: Skipped RTE guards: invalid function pointer calls (\valid_function not supported)
+[rte:annot] annotating function security_can
+[wp] Computing [100 goals...]
+[wp] 113 goals scheduled
+[wp] [Timeout] typed_security_can_ensures_4_part7 (Qed 18ms) (Alt-Ergo)
+[wp] [Timeout] typed_security_can_ensures_8_part7 (Qed 4ms) (Alt-Ergo)
+[wp] [Timeout] typed_security_can_ensures_9_part7 (Qed 28ms) (Alt-Ergo)
+[wp] Proved goals:  112 / 115
+  Terminating:     1
+  Unreachable:     1
+  Qed:           102 (2ms-1ms-28ms)
+  Alt-Ergo :       8 (9ms-26ms)
+  Timeout:         3
