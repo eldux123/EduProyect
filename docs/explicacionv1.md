@@ -7,6 +7,15 @@ y los artefactos de verificación versionados (`verification/wp_results_fase4_*.
 `verification/eva_results_fase4.txt`). Donde una propiedad está demostrada formalmente se dice; donde
 solo hay respaldo dinámico (pruebas) o queda pendiente, se distingue con honestidad.
 
+> **Actualización Etapa 2 — flujo de solicitudes (Opción 2).** A los cinco módulos base descritos
+> abajo se añadió el módulo `requests` (solicitudes de reconocimiento) y una vía aditiva de emisión
+> de credenciales ligada a ese flujo. La sección **§10** describe el flujo nuevo tal como lo
+> implementa el código (`include/requests.h`, `src/requests.c`, y las dos funciones añadidas en
+> `include/credentials.h` / `src/credentials.c`). La sección **§11** distingue con precisión qué
+> parte de la Rev 5 del diseño (`docs/diseno_flujo_solicitudes.md`) quedó **implementada** (Opción 2)
+> y qué parte quedó **especificada pero NO implementada** (Opción 3). Todo lo previo (§1–§9) se
+> conserva: sigue describiendo el estado de los cinco módulos base.
+
 ---
 
 ## 1. Qué es EduChain y qué NO es
@@ -153,6 +162,22 @@ ejecuta) y `result = EDU_OK`.
 | `OP_BLOCK_CRED` | 6 |
 | `OP_REACTIVATE_CRED` | 7 |
 | `OP_REVOKE_CRED` | 8 |
+
+Operaciones añadidas por el módulo `requests` (Etapa 2, `op_code_t` 9..15):
+
+| Nombre | Valor | Usada por el código actual |
+|--------|------:|----------------------------|
+| `OP_SUBMIT_REQUEST` | 9 | sí (`request_submit` / `request_submit_correction`) |
+| `OP_ENDORSE_REQUEST` | 10 | sí (`request_endorse`) |
+| `OP_VERIFY_REQUEST` | 11 | sí (`request_verify`) |
+| `OP_REJECT_REQUEST` | 12 | sí (`request_reject`) |
+| `OP_RECORD_REQUEST` | 13 | sí (`request_record`) |
+| `OP_GRANT_REPRESENTATION` | 14 | **no** (`authz_grant` es Opción 3, no implementada — §11) |
+| `OP_REVOKE_REPRESENTATION` | 15 | **no** (`authz_revoke` es Opción 3, no implementada — §11) |
+
+El rol `ROLE_INSTITUTION = 5` se añadió también a `role_t` (con el alias `ROLE_PROFESSOR` ≡
+`ROLE_PRO`). Ningún valor de rol u operación previo cambió: la ampliación de `include/common.h` es
+**aditiva**.
 
 ### 4.4 Estructuras y qué guarda cada registro
 
@@ -349,6 +374,200 @@ usando los comandos WP y Eva de la sección 2.
   - **Deuda de prueba:** faltan pruebas de `actor_id` real en transiciones, de arreglos llenos
     (`creds[]`/`exps[]`) y de log lleno. Son pruebas dinámicas adicionales, no corrección de spec.
 - **`ERR_IMMUTABLE`** está definido pero ninguna función lo devuelve.
+
+---
+
+## 10. Flujo de solicitudes — módulo `requests` (Etapa 2, Opción 2)
+
+El módulo `requests` modela el ciclo de vida de una **solicitud de reconocimiento** (p. ej. de un
+período trabajado en una institución o de un vínculo institucional), desde que se presenta hasta que
+se incorpora al historial oficial, incluyendo correcciones trazables. Vive en `include/requests.h`
+y `src/requests.c`. Su estado está en una estructura **separada** de `educhain_state_t`:
+`requests_state_t` (arreglo `reqs[MAX_REQUESTS=128]` + `reqs_count`, y la tabla `auth[MAX_AUTHZ=64]`
+reservada para el flujo de representación). Las operaciones de escritura reciben **ambos** estados
+(`educhain_state_t *st` para el log de auditoría compartido, `requests_state_t *rs` para las
+solicitudes), y los contratos ACSL exigen `\separated(st, rs)`.
+
+Importante sobre la auditoría: cada operación de escritura registra un evento en el log compartido
+con `actor_id = caller_id` (quien ejecuta), **nunca** el titular `owner_id` ni la institución
+representada.
+
+### 10.1 Estados de una solicitud (`request_state_t`)
+
+| Estado | Valor | Significado |
+|--------|------:|-------------|
+| `REQ_PENDING` | 0 | presentada, a la espera de respaldo o verificación |
+| `REQ_ENDORSED` | 1 | con respaldo institucional (para categorías que lo exigen) |
+| `REQ_VERIFIED` | 2 | verificada por un `ROLE_VERIFIER` |
+| `REQ_REJECTED` | 3 | rechazada (terminal para ese trámite) |
+| `REQ_RECORDED` | 4 | incorporada al historial oficial (vigente) |
+| `REQ_SUPERSEDED` | 5 | sustituida por una corrección (histórico, ya no vigente) |
+
+### 10.2 Registro de una solicitud — `request_submit`
+
+`int request_submit(st, rs, caller_role, caller_id, req_id, owner_id, institution_id, category,
+start_date, end_date, evidence_ref, num_a..num_d)` presenta una solicitud **original**
+(`prev_id == 0`). Reglas que implementa:
+
+- **Permisos:** solo `ROLE_INSTITUTION` o `ROLE_PRO`/`ROLE_PROFESSOR` (la matriz interna
+  `request_role_can`, ver §10.9). Un `ROLE_PRO` solo presenta lo propio (`caller_id == owner_id`);
+  una `ROLE_INSTITUTION` solo con un vínculo activo registrado en `auth[]` (búsqueda de solo lectura
+  `req_find_authz_active`). Id único: si ya existe `req_id`, devuelve `ERR_DUPLICATE`.
+- **Nacimiento del estado (§5.0 del diseño):** si la presenta una `ROLE_INSTITUTION` y la categoría
+  exige respaldo, nace directamente en `REQ_ENDORSED` con `endorser_id = institution_id` (el respaldo
+  queda registrado en el mismo acto, sin una segunda operación). En el resto de casos nace en
+  `REQ_PENDING`.
+- `evidence_ref` es un identificador **opaco y no criptográfico** (coherente con el carácter
+  académico del prototipo: no es un hash ni una firma).
+
+`request_requires_endorsement(category)` es la función pura que decide qué categorías exigen respaldo
+(10 de las 14 categorías; `RESEARCH_PROJECT`, `PUBLICATION`, `TRAINING` y `CERTIFICATION` no lo
+exigen de base).
+
+### 10.3 Respaldo, verificación y rechazo
+
+- **`request_endorse`** — `REQ_PENDING → REQ_ENDORSED`. Solo una `ROLE_INSTITUTION` que representa, y
+  solo para categorías que exigen respaldo. (Cubre el caso en que la solicitud nació `PENDING` y
+  necesita respaldo posterior.)
+- **`request_verify`** — lleva la solicitud a `REQ_VERIFIED`. Solo `ROLE_VERIFIER`. El estado de
+  origen exigido es `REQ_ENDORSED` si la categoría requiere respaldo, o `REQ_PENDING` si no.
+  **Prohíbe la autovalidación:** si `submitter_id == caller_id` devuelve `ERR_SELF_VALIDATE` (mismo
+  patrón que `experience_validate`).
+- **`request_reject`** — `{REQ_PENDING | REQ_ENDORSED} → REQ_REJECTED`. Solo `ROLE_VERIFIER`, también
+  con prohibición de autovalidación.
+
+### 10.4 Incorporación al historial oficial — `request_record`
+
+`int request_record(st, rs, caller_role, caller_id, req_id)` incorpora una solicitud verificada al
+historial oficial. **Solo `ROLE_ADMIN`** (la matriz interna responde 1 para `OP_RECORD_REQUEST` únicamente
+con `ROLE_ADMIN`; no se tocó `security.c`). Tiene dos variantes, según el `prev_id` del propio `req_id`:
+
+- **Variante A (incorporación simple, `prev_id == 0`):** `REQ_VERIFIED → REQ_RECORDED`. Exige estado
+  de origen **exactamente** `REQ_VERIFIED` (reincorporar algo ya `REQ_RECORDED` u otro estado da
+  `ERR_BAD_TRANSITION`). El contenido aprobado es inmutable: solo cambia el campo `state`.
+- **Variante B (incorporación de una corrección, `prev_id != 0`):** ver §10.6.
+
+Patrón "validar todo antes de mutar nada" (atomicidad): toda la validación se ejecuta antes de la
+primera escritura, de modo que en cualquier error ninguno de los slots cambia y no se audita.
+
+### 10.5 Correcciones trazables mediante `prev_id` — `request_submit_correction`
+
+`request_submit_correction` presenta una **corrección** de un registro ya oficial: lleva el mismo
+`prev_id != 0` apuntando al registro a corregir. Validación antes de insertar: el `prev` debe existir
+y estar **vigente** (`REQ_RECORDED`), mismo `owner_id`, y coherencia de la categoría/institución con
+el registro anterior. **No toca el registro anterior**: solo inserta la nueva solicitud, que recorre
+el circuito normal (PENDING/ENDORSED → VERIFIED) hasta que un ADMIN la incorpora.
+
+### 10.6 Sustitución del registro anterior — `REQ_SUPERSEDED` (atómico)
+
+Cuando el ADMIN incorpora una corrección (`request_record` sobre un `req_id` cuyo `prev_id != 0`,
+Variante B), la operación hace en un **solo acto atómico** las dos transiciones de estado:
+
+```
+req_id:  REQ_VERIFIED  -> REQ_RECORDED    (el nuevo registro pasa a ser el vigente)
+prev_id: REQ_RECORDED  -> REQ_SUPERSEDED  (el anterior deja de ser vigente, se conserva)
+```
+
+Validación-R completa antes de mutar: `prev` existe, está vigente (`REQ_RECORDED`), mismo `owner_id`,
+coherencia de categoría/institución, y hay hueco en el log. Propiedades que el código garantiza:
+
+- **Atomicidad:** en cualquier error, ninguno de los dos slots cambia (y no se audita).
+- **Historial conservado:** el registro anterior no se borra; queda en `REQ_SUPERSEDED` (solo cambia
+  su `state`; los demás campos se preservan).
+- **Carrera de dos correcciones:** la primera gana; la segunda revalida su `prev_id`, lo ve ya
+  `REQ_SUPERSEDED` y falla limpio con `ERR_BAD_TRANSITION` sin mutar.
+- **Aciclicidad:** garantizada por los estados (un `REQ_SUPERSEDED` es terminal y nunca vuelve a ser
+  el vigente que otra corrección pueda sustituir).
+
+### 10.7 Emisión y verificación de credenciales ligadas a la trayectoria
+
+La integración con credenciales se hizo por una **vía aditiva** (sin modificar `credential_issue` ni
+sus call-sites existentes). Dos funciones nuevas en `include/credentials.h` / `src/credentials.c`:
+
+- **`credential_eligible(const requests_state_t *rs, int owner_id)`** — solo lectura
+  (`assigns \nothing`). Devuelve `1` si el titular tiene **al menos un** registro **vigente**
+  (`REQ_RECORDED`) en las categorías `CAT_INSTITUTION_WORKED` o `CAT_LINK_PERIOD`; `0` si no. Por
+  construcción excluye `REQ_SUPERSEDED` (no es `REQ_RECORDED`) y los estados en trámite
+  (`PENDING/ENDORSED/VERIFIED/REJECTED`). La elegibilidad se basa **solo** en la trayectoria vigente.
+- **`credential_issue_eligible(st, rs, caller_role, caller_id, cred_id, owner_id)`** — vía de emisión
+  aditiva. Si el titular **no** es elegible, devuelve `ERR_PERM` sin mutar nada. Si lo es, **delega**
+  en `credential_issue`, que conserva toda su validación (rol `COORD`, ids, profesional activo, una
+  credencial por profesional, capacidad, auditoría). `rs` es de solo lectura: esta vía no amplía el
+  frame de escritura de `credential_issue`.
+
+La verificación del estado de una credencial sigue con las funciones ya existentes
+`credential_status` y `credential_is_valid` (§6): solo una credencial en `CRED_ACTIVE` es "válida
+para uso". Así, la consistencia registros↔credenciales es directa: **solo** una trayectoria vigente
+`REQ_RECORDED` en las categorías habilitantes abre la vía de emisión.
+
+### 10.8 Categorías de solicitud (`request_category_t`)
+
+El enum tiene 14 valores (`CAT_INSTITUTION_WORKED = 0` .. `CAT_CERTIFICATION`). Para la elegibilidad
+de credenciales solo cuentan `CAT_INSTITUTION_WORKED` y `CAT_LINK_PERIOD`. Para el respaldo, 10 de
+las 14 lo exigen (ver §10.2).
+
+### 10.9 Control de permisos del flujo
+
+El módulo **no** llama a `security_can`: lleva su propia comprobación de rol interna,
+`request_role_can` (un `switch` puro, mismo patrón que `security_can`), con esta matriz:
+
+| Operación | Rol autorizado |
+|-----------|----------------|
+| `OP_SUBMIT_REQUEST` | `ROLE_INSTITUTION`, `ROLE_PRO`/`ROLE_PROFESSOR` |
+| `OP_ENDORSE_REQUEST` | `ROLE_INSTITUTION` |
+| `OP_VERIFY_REQUEST` | `ROLE_VERIFIER` |
+| `OP_REJECT_REQUEST` | `ROLE_VERIFIER` |
+| `OP_RECORD_REQUEST` | `ROLE_ADMIN` |
+| cualquier otra | ninguno (`\false`) |
+
+Sobre esa base de rol se superponen las reglas de identidad/ámbito ya descritas: PRO solo lo propio,
+INSTITUTION solo con vínculo activo, no autovalidación en verify/reject, solo ADMIN incorpora.
+
+---
+
+## 11. Rev 5 del diseño: qué quedó implementado (Opción 2) y qué NO (Opción 3)
+
+El diseño de referencia `docs/diseno_flujo_solicitudes.md` (Rev 5) describe un alcance mayor que el
+implementado. La decisión del proyecto fue acotar a la **Opción 2** (contrato pequeño, coherente y
+verificable) y dejar la **Opción 3** (gestión administrativa institucional) **especificada pero no
+implementada**. Esta sección delimita la frontera con exactitud, verificada contra el código.
+
+### 11.1 Implementado en el prototipo (Opción 2)
+
+- Registro de solicitudes: `request_submit` (nacimiento `PENDING`/`ENDORSED` según §10.2).
+- Correcciones trazables: `request_submit_correction` con `prev_id`.
+- Respaldo, verificación y rechazo: `request_endorse`, `request_verify`, `request_reject` (con
+  no-autovalidación).
+- Incorporación oficial: `request_record` (solo ADMIN; `REQ_VERIFIED → REQ_RECORDED`).
+- Sustitución atómica del registro anterior: `REQ_SUPERSEDED` en la Variante B de `request_record`.
+- Emisión/verificación de credenciales ligada a la trayectoria: `credential_eligible` +
+  `credential_issue_eligible` (vía aditiva), más `credential_status` / `credential_is_valid`.
+- Control de permisos del flujo: `request_role_can` interno, y las reglas de identidad/ámbito básicas.
+- Consultas internas de solo lectura: `request_find`, `request_status`, `request_requires_endorsement`,
+  `req_find_authz_active`.
+
+### 11.2 Especificado en la Rev 5 pero NO implementado (Opción 3)
+
+Lo siguiente aparece diseñado con contratos en `docs/diseno_flujo_solicitudes.md` pero **no** existe
+en el código (confirmado: no hay símbolos para estas funciones en `src/`):
+
+- **Gestión de representación en runtime (authz):** `authz_grant` / `authz_revoke` (ADMIN puebla y
+  revoca `auth[]` como operación auditada). Los `op_code` `OP_GRANT_REPRESENTATION` (14) y
+  `OP_REVOKE_REPRESENTATION` (15) y la tabla `auth[]` están **reservados** en `common.h`/
+  `requests_state_t`, pero no hay operación que los escriba. En el prototipo, `auth[]` solo se lee
+  (vía `req_find_authz_active`); no hay una vía normativa para poblarlo.
+- **`requests_is_representative`** como consulta pública independiente (el prototipo usa el helper
+  interno `req_find_authz_active`, no esta API).
+- **Capa pública de consultas con control de ámbito (`*_for`):** `request_status_for`,
+  `request_is_recorded_for`, `request_recorded_count_for`.
+- **Principio P-SCOPE** (matriz de consultas por rol/identidad/ámbito) y las primitivas de consulta
+  públicas asociadas.
+- **Respaldo institucional condicional complejo** más allá del caso directo implementado (p. ej. las
+  reglas ampliadas de representación de la Rev 5).
+
+Esta frontera es deliberada: la Opción 2 entrega el ciclo de vida completo de la solicitud y su
+conexión con credenciales, dejando fuera la administración institucional de representaciones, que
+pertenece a la Opción 3.
 
 ---
 

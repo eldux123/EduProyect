@@ -743,3 +743,136 @@ Tras las correcciones de BLOQUEANTE-1/-2, las obligaciones `experience_validate_
 ser contraejemplos): el residuo es el límite genuino de unicidad global (`state_inv`), reclasificado
 en la tabla de pendientes. Ningún objetivo previamente probado pasó a Failure; regresión 99/99 en
 ambas builds; la línea base y `wp_results_baseline.txt` siguen intactos.
+
+---
+
+## Ejecución 2026 — Etapa 2, Opción 2 (módulo `requests` + credenciales elegibles, integrados)
+
+> **Sección nueva, añadida por debajo del historial.** La sección "LÍNEA BASE — Ejecución 2026-11-18
+> (NO MODIFICAR)", todos los resultados históricos de Fase 4 de arriba y el artefacto
+> `verification/wp_results_baseline.txt` quedan **intactos**. Esta entrada documenta el estado tras
+> integrar la Opción 2 (flujo de solicitudes + emisión de credenciales ligada a la trayectoria).
+> Las cifras provienen de los artefactos reales del repo: `wp_requests_record_v2_out.txt`,
+> `wp_credentials_eligible_v2_out.txt` (ambos en `.agents/tasks/etapa2-requests/`) y de la
+> re-ejecución de `run_tests.sh`.
+
+### Entorno de esta ejecución
+
+Mismo verificador y flags que el histórico, ejecutado en WSL2 Ubuntu con Frama-C 33.0 (Arsenic):
+
+```bash
+frama-c -wp -wp-rte -wp-prover alt-ergo,z3 -wp-timeout 20 \
+  -cpp-extra-args="-Iinclude -Iverification" src/<módulo>.c
+```
+
+### Pruebas dinámicas (normal + ASan/UBSan)
+
+| Build | Resultado |
+|-------|-----------|
+| Normal (`-Wall -Wextra`) | **241 / 241, 0 fallos** |
+| ASan + UBSan | **241 / 241, 0 fallos** |
+
+Cero warnings de compilación en ambos builds. (La suite creció desde las 99/99 heredadas de Fase 4:
+99 heredadas + 79 del primer entregable de `requests` + 43 de `request_record` + 20 de elegibilidad
+de credenciales = 241.) Ningún test heredado regresó.
+
+### WP por módulo — estado post-Opción 2
+
+| Módulo | Probados / Total | Failed | Timeout | Artefacto fuente |
+|--------|-----------------:|-------:|--------:|------------------|
+| `requests.c` | **739 / 766** | 24 | 3 | `wp_requests_record_v2_out.txt` |
+| `credentials.c` | **362 / 382** | 16 | 4 | `wp_credentials_eligible_v2_out.txt` |
+| `security.c` | **114 / 114** | 0 | 0 | **no reabierto en esta etapa** (sin cambios) |
+
+> Los totales no se comparan como porcentajes contra la línea base ni contra Fase 4: cada contrato
+> nuevo **genera más obligaciones**. Lo relevante es la clasificación honesta Proved / Failed /
+> Timeout de abajo y que ningún objetivo previamente probado pasó a Failed.
+
+`security.c` **no se tocó** en la Opción 2 (el permiso "solo ADMIN" de `request_record` se resolvió
+con la matriz interna `request_role_can`, no reabriendo `security_can`); sus 114/114 de la última
+ejecución de Fase 4 siguen vigentes, no se volvió a ejecutar.
+
+#### `requests.c` — 739/766 (24 Failed, 3 Timeout)
+
+**Probado (Qed / Alt-Ergo):**
+- **P-1 (autorización, mitad negativa)** `!req_role_can(...) ==> ERR_PERM || ERR_BAD_ID`:
+  **PROVED** en las cinco operaciones de escritura, incluida `request_record`
+  (`typed_request_record_ensures_2` **no** aparece en la lista de Failure/Timeout del artefacto). La
+  autorización "solo ADMIN incorpora" queda demostrada a nivel de la obligación de permiso.
+- Equivalencia `request_role_can` ≡ `req_role_can` (switch ↔ predicado): PROVED.
+- El **`assigns` de `request_record` acotado a los dos slots involucrados** (el del `req_id` y, en la
+  Variante B, el del `prev_id`, por su `id`, campo-`state`-only): **PROVED** — ningún
+  `request_record_*_assigns_*` aparece en Failure/Timeout.
+- Consultas de solo lectura (`request_find`, `request_requires_endorsement`, `req_find_authz_active`,
+  etc.): sus obligaciones cierran.
+
+**No demostrado (Failed) / Timeout — clasificación honesta (NO se declara "demostrado"):**
+- Los **2 `ensures` nuevos de `request_record`** añadidos en la mejora ACSL previa al commit
+  —`typed_request_record_ensures_5` (anterior `REQ_RECORDED → REQ_SUPERSEDED`) y
+  `typed_request_record_ensures_6` (inmutabilidad del registro anterior salvo su `state`)— quedan
+  **FAILED en WP**, pendientes. Son de la **misma clase de framing** (escritura de struct + llamada a
+  `audit_record_event` que cruza las regiones `st`/`rs`) que el baseline aceptado; la doble
+  transición atómica y los existenciales positivos no cierran en WP. **Están cubiertos por prueba
+  dinámica** (doble transición, SUPERSEDED, inmutabilidad del anterior, atomicidad en error, carrera
+  de dos correcciones), **NO demostrados**.
+- Los otros Failed/Timeout de `request_record` (`_ensures`, `_ensures_3` invariante de `reqs_count`,
+  `_ensures_4` P-7 doble transición existencial) y los de `request_submit`/`submit_correction`/
+  `endorse`/`verify`/`reject`/`req_insert` son de la misma naturaleza de framing ya aceptada en Fase 4.
+- 3 Timeout: `request_status_ensures` (existencial de consulta), `req_insert_call_audit_record_event_requires_2`,
+  `req_submit_checks_assert_rte_mem_access_3` — clase baseline, expiran a 20 s.
+
+No se debilitó ningún contrato, no se introdujeron `assumes` injustificados ni se forzó ningún cierre
+para subir el número de goals.
+
+#### `credentials.c` — 362/382 (16 Failed, 4 Timeout)
+
+**Probado (Qed / Alt-Ergo):**
+- **`credential_eligible` (P-20, la consulta pura de elegibilidad)** cierra **completamente** en WP:
+  no aparece en ningún Failure/Timeout → su `assigns \nothing` y el bicondicional
+  `\result == 1 <==> req_eligible(rs, owner)` están **PROVED**.
+
+**No demostrado (Failed) — clasificación honesta:**
+- **+4 Failed nuevos, todos de `credential_issue_eligible`** (la vía aditiva):
+  `typed_credential_issue_eligible_ensures`, `_ensures_2` (`!req_eligible ==> ERR_PERM`), `_ensures_3`
+  (`EDU_OK ==> req_eligible`) y `_not_eligible_or_no_space_assigns_normal_part5`. Son de la **misma
+  clase de framing**: la función **delega** en `credential_issue`, y WP no conecta la precondición
+  `req_eligible` con las conclusiones de resultado/`assigns` del wrapper a través de
+  `audit_record_event`. **Cubiertos por prueba dinámica** (N4.1 de las notas de implementación:
+  emite con trayectoria válida, rechaza `ERR_PERM` sin mutar, SUPERSEDED no habilita), **NO demostrados**.
+- Las **12 Failed + 4 Timeout del baseline de `credentials.c` siguen idénticas** (`cred_transition`,
+  `credential_activate/block/reactivate_ensures_2`, `credential_issue_ensures`/`space_assigns_part18`,
+  `credential_revoke_*`, `credential_status_ensures`, `credential_is_valid_ensures_2`,
+  `credential_issue_ensures_2`): **ningún objetivo previamente probado regresó a Failure.**
+
+### Limitaciones conocidas de framing (honestidad, no contraejemplo)
+
+Las obligaciones Failed/Timeout de arriba comparten una causa documentada en toda la historia del
+proyecto, y se mantiene con la Opción 2:
+
+- **Escritura de struct + `audit_record_event` que cruza regiones `st`/`rs`.** La postcondición
+  (existencial de transición, invariante de contador, conexión elegibilidad↔emisión) atraviesa la
+  llamada de auditoría, que escribe en `st` mientras la transición ocurre en `rs`; WP no liga ambas
+  regiones para cerrar la obligación.
+- **La doble transición atómica** de `request_record` (Variante B) y los **existenciales positivos**
+  (p. ej. "el `prev_id` pasó a `REQ_SUPERSEDED`") no cierran en WP por lo anterior.
+
+Esto es un **límite del probador**, no un contraejemplo: no se observó ninguna refutación, las
+propiedades son ciertas y están respaldadas por las **241/241 pruebas** (normal + ASan/UBSan). En
+este documento **nada marcado Failed o Timeout se describe como "demostrado" o "verificado"**.
+
+### Integridad de la línea base y del histórico
+
+- La sección "LÍNEA BASE — Ejecución 2026-11-18 (NO MODIFICAR)" y todos los resultados históricos de
+  Fase 4 quedan **sin cambios** (esta entrada se añadió por debajo).
+- `verification/wp_results_baseline.txt` **no se tocó**.
+- `fase4-acsl` no se tocó. No se modificó ningún `.c`, `.h`, contrato ACSL ni artefacto de
+  verificación en esta tarea de cierre documental.
+
+### Artefactos fuente de las cifras de esta sección
+
+- `.agents/tasks/etapa2-requests/wp_requests_record_v2_out.txt` → `[wp] Proved goals: 739 / 766`
+  (`Failed: 24, Timeout: 3`).
+- `.agents/tasks/etapa2-requests/wp_credentials_eligible_v2_out.txt` → `[wp] Proved goals: 362 / 382`
+  (`Failed: 16, Timeout: 4`).
+- `run_tests.sh` → 241/241, 0 fallos (normal y ASan/UBSan).
+- `.agents/tasks/etapa2-requests/impl_notes.md` (notas de implementación con el desglose por goal).
