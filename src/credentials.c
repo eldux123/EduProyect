@@ -140,9 +140,17 @@ int credential_issue(educhain_state_t *st, role_t caller_role, int caller_id,
     // -------------------------------------------------------------------------
     // #1: contrato fuerte de la auxiliar, parametrizado por from/to/op_code.
     //     Expone a los wrappers lo que necesitan para derivar P-1 y P-7.
-    // P-1 (autorizacion): rol sin permiso para op_code => ERR_PERM.
+    // P-1 (autorizacion): rol sin permiso para op_code => el llamador NO tiene
+    //     exito; obtiene ERR_PERM, o ERR_BAD_ID si ademas los ids estan fuera de
+    //     rango. El consecuente admite ERR_BAD_ID porque el cuerpo chequea el
+    //     rango de ids (ERR_BAD_ID) ANTES del permiso (ERR_PERM): con el
+    //     consecuente == ERR_PERM a secas la postcondicion seria insatisfacible en
+    //     el camino ERR_BAD_ID (p. ej. caller_id=0 con rol no autorizado), un
+    //     contraejemplo real, no framing (BLOQUEANTE-5). Mismo patron que la mitad
+    //     negativa de P-8 (credential_revoke) y P-2 (experience_validate).
     // role_can (verification/specifications.h) refleja la matriz de security_can.
-    ensures !role_can(caller_role, op_code) ==> \result == ERR_PERM;
+    ensures !role_can(caller_role, op_code)
+            ==> (\result == ERR_PERM || \result == ERR_BAD_ID);
     // P-7 (transicion legal from->to): en exito, la credencial cred_id estaba
     //     en `from` y queda en `to` (pre con \old, post sin \old, misma k).
     ensures \result == EDU_OK ==>
