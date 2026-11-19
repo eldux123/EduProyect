@@ -9,6 +9,7 @@ void test_professionals(void);
 void test_experience(void);
 void test_credentials(void);
 void test_attacks(void);
+void test_requests(void);
 
 int main(void)
 {
@@ -17,6 +18,7 @@ int main(void)
     test_experience();
     test_credentials();
     test_attacks();
+    test_requests();
     printf("\n=== Resultado: %d pruebas, %d fallos ===\n", g_tests_run, g_tests_failed);
     return g_tests_failed == 0 ? 0 : 1;
 }
