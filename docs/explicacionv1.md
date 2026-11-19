@@ -66,12 +66,18 @@ lo fueron por Qed o Alt-Ergo. (Contenido reformulado para cumplir con restriccio
 El sistema se divide en cinco módulos. Cada uno tiene su cabecera en `include/` y su implementación
 en `src/`. La lógica de negocio vive solo en estos módulos; `main.c` y la CLI son consumidores.
 
-### 3.1 `security` — punto único de decisión de autorización
-Codifica la **matriz de permisos** (rol × operación). Función pública:
+### 3.1 `security` — decisor de autorización de los módulos base
+Codifica la **matriz de permisos** (rol × operación) de los módulos base. Función pública:
 
 - `int security_can(role_t caller_role, int op_code)` — función pura de solo lectura. Devuelve `1`
   si el rol puede ejecutar la operación, `0` si no. Es un `switch` sobre `op_code` sin bucles ni
-  estado. Todas las demás funciones que mutan estado consultan aquí la autorización por rol.
+  estado. Las funciones que mutan estado en **`professionals`, `experience` y `credentials`**
+  consultan aquí la autorización por rol.
+
+> **Precisión (ver §10.9):** `security_can` es el decisor de los módulos base, **no** de todo el
+> sistema. El módulo `requests` (Opción 2) tiene su **propio** decisor interno `request_role_can`
+> (mismo patrón `switch` puro, matriz propia) y **no** llama a `security_can`. Son dos puntos de
+> decisión análogos, cada uno para su dominio.
 
 ### 3.2 `professionals` — registro de profesionales
 - `int professional_register(educhain_state_t *st, role_t caller_role, int caller_id, int new_id)`

@@ -11,9 +11,11 @@
   Neither code nor specification for function Frama_C_interval, generating
   default assigns. See -generated-spec-* options for more info.
 [eva] using specification for function Frama_C_interval
-[eva:alarm] include/security.h:17: Warning: 
+[eva:alarm] include/security.h:22: Warning: 
   function security_can: postcondition got status unknown.
-[eva:alarm] include/security.h:35: Warning: 
+[eva:alarm] include/security.h:40: Warning: 
+  function security_can: postcondition got status unknown.
+[eva:alarm] include/security.h:46: Warning: 
   function security_can: postcondition got status unknown.
 [eva:alarm] include/professionals.h:23: Warning: 
   function professional_register: postcondition got status unknown.
@@ -32,43 +34,91 @@
   function professional_register: postcondition got status unknown.
 [eva:alarm] include/professionals.h:26: Warning: 
   function professional_register: postcondition got status unknown.
-[eva:alarm] include/security.h:19: Warning: 
+[eva:alarm] include/security.h:24: Warning: 
   function security_can: postcondition got status unknown.
 [eva:alarm] include/professionals.h:36: Warning: 
   function professional_find: postcondition got status unknown.
-[eva:alarm] include/experience.h:24: Warning: 
+[eva:alarm] include/experience.h:29: Warning: 
   function experience_register: postcondition got status unknown.
-[eva:alarm] include/experience.h:26: Warning: 
+[eva:alarm] include/experience.h:31: Warning: 
   function experience_register: postcondition got status unknown.
-[eva:alarm] include/experience.h:28: Warning: 
+[eva:alarm] include/experience.h:33: Warning: 
   function experience_register: postcondition got status unknown.
-[eva:alarm] include/security.h:21: Warning: 
+[eva:alarm] include/security.h:26: Warning: 
   function security_can: postcondition got status unknown.
 [eva:partition] src/experience.c:19: starting to merge loop iterations
 [eva:alarm] src/experience.c:14: Warning: loop invariant got status unknown.
 [eva:alarm] src/experience.c:15: Warning: loop invariant got status unknown.
-[eva:alarm] include/experience.h:89: Warning: 
+[eva:alarm] include/experience.h:114: Warning: 
   function experience_find: postcondition got status unknown.
-[eva:alarm] include/experience.h:90: Warning: 
+[eva:alarm] include/experience.h:115: Warning: 
   function experience_find: postcondition got status unknown.
 [eva:alarm] include/audit.h:18: Warning: 
   function audit_record_event: postcondition got status unknown.
-[eva:alarm] include/experience.h:67: Warning: 
+[eva:alarm] include/experience.h:72: Warning: 
   function experience_validate: postcondition got status unknown.
-[eva:alarm] include/experience.h:70: Warning: 
+[eva:alarm] include/experience.h:75: Warning: 
   function experience_validate: postcondition got status unknown.
-[eva:alarm] include/security.h:23: Warning: 
+[eva:alarm] include/experience.h:88: Warning: 
+  function experience_validate: postcondition got status unknown.
+[eva:alarm] include/security.h:28: Warning: 
   function security_can: postcondition got status unknown.
-[eva:partition] src/credentials.c:31: starting to merge loop iterations
+[eva:alarm] include/credentials.h:29: Warning: 
+  function credential_issue: postcondition got status unknown.
+[eva:partition] src/credentials.c:56: starting to merge loop iterations
+[eva:alarm] src/credentials.c:51: Warning: loop invariant got status unknown.
+[eva:alarm] src/credentials.c:52: Warning: loop invariant got status unknown.
+[eva:alarm] src/credentials.c:43: Warning: 
+  function cred_find: postcondition got status unknown.
+[eva:alarm] src/credentials.c:44: Warning: 
+  function cred_find: postcondition got status unknown.
 [eva:alarm] include/audit.h:19: Warning: 
   function audit_record_event: postcondition got status unknown.
-[eva:alarm] include/security.h:25: Warning: 
+[eva:alarm] src/credentials.c:139: Warning: 
+  function cred_transition: postcondition got status unknown.
+[eva:alarm] src/credentials.c:152: Warning: 
+  function cred_transition: postcondition got status unknown.
+[eva:alarm] src/credentials.c:156: Warning: 
+  function cred_transition: postcondition got status unknown.
+[eva:alarm] src/credentials.c:160: Warning: 
+  function cred_transition: postcondition got status unknown.
+[eva:alarm] include/credentials.h:59: Warning: 
+  function credential_activate: postcondition got status unknown.
+[eva:alarm] include/credentials.h:60: Warning: 
+  function credential_activate: postcondition got status unknown.
+[eva:alarm] include/credentials.h:63: Warning: 
+  function credential_activate: postcondition got status unknown.
+[eva:alarm] include/security.h:30: Warning: 
   function security_can: postcondition got status unknown.
-[eva:partition] src/credentials.c:15: starting to merge loop iterations
+[eva:alarm] include/credentials.h:84: Warning: 
+  function credential_block: postcondition got status unknown.
+[eva:alarm] include/credentials.h:85: Warning: 
+  function credential_block: postcondition got status unknown.
+[eva:alarm] include/credentials.h:87: Warning: 
+  function credential_block: postcondition got status unknown.
+[eva:alarm] include/credentials.h:103: Warning: 
+  function credential_reactivate: postcondition got status unknown.
+[eva:alarm] include/credentials.h:104: Warning: 
+  function credential_reactivate: postcondition got status unknown.
+[eva:alarm] include/credentials.h:106: Warning: 
+  function credential_reactivate: postcondition got status unknown.
+[eva:alarm] include/credentials.h:122: Warning: 
+  function credential_revoke: postcondition got status unknown.
+[eva:alarm] include/credentials.h:123: Warning: 
+  function credential_revoke: postcondition got status unknown.
+[eva:alarm] include/credentials.h:142: Warning: 
+  function credential_revoke: postcondition got status unknown.
+[eva:partition] src/credentials.c:26: starting to merge loop iterations
+[eva:alarm] src/credentials.c:21: Warning: loop invariant got status unknown.
+[eva:alarm] src/credentials.c:22: Warning: loop invariant got status unknown.
+[eva:alarm] include/credentials.h:172: Warning: 
+  function credential_status: postcondition got status unknown.
+[eva:alarm] include/credentials.h:183: Warning: 
+  function credential_is_valid: postcondition got status unknown.
 [eva:partition] src/experience.c:145: starting to merge loop iterations
 [eva:alarm] src/experience.c:140: Warning: loop invariant got status unknown.
 [eva:alarm] src/experience.c:141: Warning: loop invariant got status unknown.
-[eva:alarm] include/experience.h:103: Warning: 
+[eva:alarm] include/experience.h:128: Warning: 
   function experience_validated_count: postcondition got status unknown.
 [eva:alarm] include/audit.h:58: Warning: 
   function audit_get_count: postcondition got status unknown.
@@ -670,8 +720,8 @@
   __retres ∈ {0}
 [eva:summary] ====== ANALYSIS SUMMARY ======
   ----------------------------------------------------------------------------
-  23 functions analyzed (out of 23): 100% coverage.
-  In these functions, 440 statements reached (out of 544): 81% coverage.
+  23 functions analyzed (out of 25): 92% coverage.
+  In these functions, 443 statements reached (out of 547): 81% coverage.
   ----------------------------------------------------------------------------
   Some errors and warnings have been raised during the analysis:
     by the Eva analyzer:      0 errors    0 warnings
@@ -680,7 +730,7 @@
   0 alarms generated by the analysis.
   ----------------------------------------------------------------------------
   Evaluation of the logical properties reached by the analysis:
-    Assertions        2 valid     8 unknown     0 invalid     10 total
-    Preconditions    54 valid     0 unknown     0 invalid     54 total
-  87% of the logical properties reached have been proven.
+    Assertions        5 valid    12 unknown     0 invalid     17 total
+    Preconditions    91 valid     0 unknown     0 invalid     91 total
+  88% of the logical properties reached have been proven.
   ----------------------------------------------------------------------------

@@ -1,2 +1,32 @@
-# Caché de verificación de Frama-C/WP (regenerable, no debe versionarse)
+# === EduChain .gitignore ===
+# Criterio: ignorar lo regenerable y lo temporal; conservar codigo,
+# especificaciones, tests, documentacion y evidencias de verificacion.
+
+# --- Cache de verificacion de Frama-C/WP (regenerable) ---
 .frama-c/
+
+# --- Artefactos de orquestacion de workflows (internos del proceso) ---
+# Nota: los artefactos de evidencia ya commiteados a proposito
+# (impl_notes.md, review-*.json, review-gate.json) siguen versionados;
+# esta regla solo evita que se cuelen los temporales no rastreados.
+.agents/
+
+# --- Binarios y objetos de compilacion (regenerables con gcc) ---
+*.o
+*.obj
+*.a
+*.so
+*.exe
+*.out
+# ejecutables de build/test/demo sin extension
+/educhain
+/educhain_cli
+/run_demo
+/run_tests
+
+# --- Temporales de editor / sistema operativo ---
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
