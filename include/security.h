@@ -5,6 +5,11 @@
 #define EDUCHAIN_SECURITY_H
 
 #include "common.h"
+#ifdef __FRAMAC__
+/* Fase 4 (correccion ACSL #1): predicado logico role_can que refleja la matriz.
+ * Solo bajo Frama-C (vive en verification/, fuera del -Iinclude del build gcc). */
+#include "specifications.h"
+#endif
 
 /* Retorna 1 si caller_role puede ejecutar op_code, 0 si no.
  * Funcion pura de solo lectura. */
@@ -33,6 +38,12 @@
           ==> \result == 0;
   // un VERIFIER nunca puede escribir nada.
   ensures (caller_role == ROLE_VERIFIER) ==> (\result == 0);
+  // Fase 4 (#1): equivalencia con el predicado logico role_can (misma matriz §3).
+  // Permite que los contratos ACSL de otros modulos (p. ej. cred_transition, cuyo
+  // op_code es parametro) deriven la autorizacion P-1 referenciando role_can.
+  // No debilita: es la MISMA regla que las clausulas bicondicionales de arriba,
+  // reagrupada en un solo predicado; WP la cierra sobre el switch puro.
+  ensures \result == 1 <==> role_can(caller_role, op_code);
 */
 int security_can(role_t caller_role, int op_code);
 

@@ -5,6 +5,11 @@
 #include "professionals.h"
 #include "security.h"
 #include "audit.h"
+#ifdef __FRAMAC__
+/* Fase 4 (correccion ACSL #1): predicado logico role_can (matriz de permisos).
+ * Solo bajo Frama-C: vive en verification/ (fuera del -Iinclude del build gcc). */
+#include "specifications.h"
+#endif
 
 int credential_status(const educhain_state_t *st, int cred_id)
 {
@@ -129,11 +134,36 @@ int credential_issue(educhain_state_t *st, role_t caller_role, int caller_id,
 /*@ requires \valid(st);
     requires 0 <= st->creds_count <= MAX_CREDENTIALS;
     requires 0 <= st->log_count   <= MAX_EVENTS;
-    assigns { st->creds[k].state | integer k; 0 <= k < st->creds_count && st->creds[k].id == cred_id },
-            st->log[st->log_count], st->log_count;
     ensures \result == EDU_OK || \result == ERR_PERM || \result == ERR_BAD_ID
          || \result == ERR_NOT_FOUND || \result == ERR_BAD_TRANSITION || \result == ERR_FULL;
     ensures st->creds_count == \old(st->creds_count);
+    // -------------------------------------------------------------------------
+    // #1: contrato fuerte de la auxiliar, parametrizado por from/to/op_code.
+    //     Expone a los wrappers lo que necesitan para derivar P-1 y P-7.
+    // P-1 (autorizacion): rol sin permiso para op_code => ERR_PERM.
+    // role_can (verification/specifications.h) refleja la matriz de security_can.
+    ensures !role_can(caller_role, op_code) ==> \result == ERR_PERM;
+    // P-7 (transicion legal from->to): en exito, la credencial cred_id estaba
+    //     en `from` y queda en `to` (pre con \old, post sin \old, misma k).
+    ensures \result == EDU_OK ==>
+            (\exists integer k; 0 <= k < st->creds_count && st->creds[k].id == cred_id
+             && \old(st->creds[k].state) == from && st->creds[k].state == to);
+    // El exito exige que cred_id existiera en estado `from` al entrar.
+    ensures \result == EDU_OK ==>
+            (\exists integer k; 0 <= k < \old(st->creds_count)
+             && st->creds[k].id == cred_id && \old(st->creds[k].state) == from);
+    // -------------------------------------------------------------------------
+    // #5: assigns partido por behavior de exito vs. error.
+    behavior success:
+      assumes st->log_count < MAX_EVENTS;
+      assigns { st->creds[k].state | integer k;
+                0 <= k < st->creds_count && st->creds[k].id == cred_id },
+              st->log[st->log_count], st->log_count;
+    behavior log_full:
+      assumes st->log_count >= MAX_EVENTS;
+      assigns \nothing;
+    complete behaviors;
+    disjoint behaviors success, log_full;
 */
 static int cred_transition(educhain_state_t *st, role_t caller_role, int caller_id,
                            int op_code, int cred_id, cred_state_t from, cred_state_t to)

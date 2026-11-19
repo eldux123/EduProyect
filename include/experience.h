@@ -69,14 +69,26 @@ int experience_register(educhain_state_t *st, role_t caller_role, int caller_id,
   // El numero de experiencias no cambia (validate no inserta).
   ensures st->exps_count == \old(st->exps_count);
   // -------------------------------------------------------------------------
-  // P-5 (INMUTABILIDAD de owner/fechas) y P-2 (no autovalidacion) formalizadas:
-  // la inmutabilidad de owner_id/start_date/end_date esta capturada POR EL `assigns`
-  // (esos campos NO son escribibles: solo state/validator de la exp con id==exp_id).
-  // El efecto funcional completo (transicion a VALIDATED, ERR_SELF_VALIDATE,
-  // ERR_ALREADY_VALID) se intento formalizar como `ensures` universales/existenciales
-  // pero WP no los cierra en esta configuracion (mismo patron de framing sobre
-  // struct ~7 KB). Se documentan como PENDIENTES en docs/formal_verification.md,
-  // con respaldo dinamico en test_attacks.c (A1, A2, A3) y test_experience.c.
+  // #3 P-2 (NO AUTOVALIDACION, regla de seguridad R-2) formalizada como ensures.
+  // Si existe la experiencia exp_id y su titular (owner_id en el pre-estado) es el
+  // propio llamador, el resultado es ERR_SELF_VALIDATE (nunca EDU_OK). Anclado en
+  // \old: el owner no cambia (es inmutable por el `assigns`), pero se referencia el
+  // pre-estado para dejar explicito que la decision se toma sobre el owner original.
+  ensures (\exists integer k; 0 <= k < \old(st->exps_count)
+           && st->exps[k].id == exp_id && \old(st->exps[k].owner_id) == caller_id)
+          ==> \result == ERR_SELF_VALIDATE;
+  // (El dual positivo "en exito validator != owner" se evaluo pero NO cierra en WP:
+  //  requiere unicidad global de exp_id (state_inv) para ligar el idx hallado con
+  //  la k del existencial. Se omite como ensures y se documenta como pendiente por
+  //  el limite del probador; respaldo dinamico en test_attacks.c A2.)
+  // -------------------------------------------------------------------------
+  // P-5 (INMUTABILIDAD de owner/fechas): capturada POR EL `assigns` (esos campos
+  // NO son escribibles: solo state/validator de la exp con id==exp_id).
+  // El resto del efecto funcional (transicion a VALIDATED, ERR_ALREADY_VALID) se
+  // intento formalizar como `ensures` universales/existenciales pero WP no los
+  // cierra en esta configuracion (mismo patron de framing sobre struct ~7 KB).
+  // Se documentan como PENDIENTES en docs/formal_verification.md, con respaldo
+  // dinamico en test_attacks.c (A1, A2, A3) y test_experience.c.
   // -------------------------------------------------------------------------
 */
 int experience_validate(educhain_state_t *st, role_t caller_role, int caller_id, int exp_id);
