@@ -6,6 +6,11 @@
 #define EDUCHAIN_CREDENTIALS_H
 
 #include "common.h"
+#ifdef __FRAMAC__
+/* Fase 4 (correccion BLOQUEANTE-2): predicado logico role_can (matriz de permisos).
+ * Solo bajo Frama-C: vive en verification/ (fuera del -Iinclude del build gcc). */
+#include "specifications.h"
+#endif
 
 /* caller_id identifica al usuario que ejecuta (autenticado por capa externa).
  * No requiere existir en professionals[]. Se audita como actor_id del evento. */
@@ -117,10 +122,18 @@ int credential_reactivate(educhain_state_t *st, role_t caller_role, int caller_i
     ensures st->creds_count == \old(st->creds_count);
     // -------------------------------------------------------------------------
     // #4 P-8 (REVOKED terminal), anclado TODO en \old, con las dos mitades:
-    //  (negativa) si cred_id ya estaba REVOKED antes de la llamada => se rechaza
-    //             con ERR_BAD_TRANSITION (nunca re-revoca un terminal).
-    ensures (\exists integer k; 0 <= k < \old(st->creds_count)
-             && st->creds[k].id == cred_id && \old(st->creds[k].state) == CRED_REVOKED)
+    //  (negativa) si el llamador esta AUTORIZADO (rol con permiso OP_REVOKE_CRED y
+    //             los ids en rango valido) y cred_id ya estaba REVOKED antes de la
+    //             llamada => se rechaza con ERR_BAD_TRANSITION (nunca re-revoca un
+    //             terminal). El antecedente se condiciona a la autorizacion y al
+    //             rango de ids porque esos chequeos (ERR_PERM / ERR_BAD_ID) PRECEDEN
+    //             al chequeo de estado REVOKED en el cuerpo: sin esa guarda la
+    //             postcondicion seria insatisfacible en el camino ERR_PERM (rol no
+    //             autorizado) o ERR_BAD_ID (contraejemplo real, no framing).
+    ensures (role_can(caller_role, OP_REVOKE_CRED)
+             && ID_MIN <= caller_id <= ID_MAX && ID_MIN <= cred_id <= ID_MAX
+             && (\exists integer k; 0 <= k < \old(st->creds_count)
+                 && st->creds[k].id == cred_id && \old(st->creds[k].state) == CRED_REVOKED))
             ==> \result == ERR_BAD_TRANSITION;
     //  (positiva) en exito, la credencial cred_id (que por la mitad negativa NO
     //             estaba REVOKED) queda REVOKED. Pre con \old, post sin \old,

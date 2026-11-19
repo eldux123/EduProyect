@@ -1,0 +1,67 @@
+=== WP src/experience.c ===
+[kernel] Parsing src/experience.c (with preprocessing)
+[wp] Running WP plugin...
+[wp] Warning: Skipped RTE guards: unaligned pointers (\aligned not supported)
+[wp] Warning: Skipped RTE guards: invalid function pointer calls (\valid_function not supported)
+[rte:annot] annotating function date_in_range
+[rte:annot] annotating function experience_find
+[rte:annot] annotating function experience_register
+[kernel:annot:missing-spec] include/professionals.h:43: Warning: 
+  Neither code nor explicit exits and terminates for function
+  professional_is_active, generating default clauses.
+  See -generated-spec-* options for more info.
+[kernel:annot:missing-spec] include/security.h:48: Warning: 
+  Neither code nor explicit exits and terminates for function security_can,
+  generating default clauses. See -generated-spec-* options for more info.
+[kernel:annot:missing-spec] include/audit.h:40: Warning: 
+  Neither code nor explicit exits and terminates for function
+  audit_record_event, generating default clauses.
+  See -generated-spec-* options for more info.
+[rte:annot] annotating function experience_validate
+[rte:annot] annotating function experience_validated_count
+[wp] Computing [100 goals...]
+[wp] 175 goals scheduled
+[wp] [Timeout] typed_experience_register_ensures_7 (Qed 4.5s) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_register_ensures_6 (Qed 572ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_experience_register_ensures_5 (Qed 582ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_experience_register_ensures_4 (Qed 654ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_register_ensures_3 (Qed 1.2s) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_ensures_2 (Qed 1.2s) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_register_ensures (Qed 7s) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_experience_register_ensures_8 (Qed 7.3s) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_register_assigns_normal_part08 (Qed 101ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part07 (Qed 128ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part22 (Qed 209ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part21 (Qed 183ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part20 (Qed 186ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part19 (Qed 217ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part18 (Qed 183ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_normal_part17 (Qed 222ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_register_assigns_normal_part24 (Qed 352ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_register_assigns_exit_part04 (Qed 109ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part03 (Qed 114ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part09 (Qed 175ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part08 (Qed 177ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part07 (Qed 204ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part12 (Qed 274ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part11 (Qed 253ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_assigns_exit_part10 (Qed 268ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_professional_is_active_requires (Qed 121ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_audit_record_event_requires_2 (Qed 224ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_experience_find_requires_2 (Qed 142ms) (Alt-Ergo) (Cached)
+[wp] [Timeout] typed_experience_register_call_professional_is_active_requires_2 (Qed 133ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_validate_ensures_4 (Qed 367ms) (Alt-Ergo) (No Cache)
+[wp] [Failure] typed_experience_validate_ensures_3 (Qed 781ms) (Alt-Ergo) (No Cache)
+[wp] [Timeout] typed_experience_validate_ensures_2 (Qed 332ms) (Alt-Ergo) (Cached)
+[wp] [Failure] typed_experience_validate_ensures (Qed 881ms) (Alt-Ergo) (No Cache)
+[wp] [Cache] found:50, updated:64
+[wp] Proved goals:  146 / 179
+  Terminating:     2
+  Unreachable:     2
+  Qed:           116 (7ms-184ms-7.3s)
+  Alt-Ergo :      26 (33ms-88ms-194ms)
+  Failed:          9
+  Timeout:        24
+[wp:pedantic-assigns] src/experience.c:27: Warning: 
+  No 'assigns' specification for function 'date_in_range'.
+  Callers assumptions might be imprecise.

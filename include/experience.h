@@ -5,6 +5,11 @@
 #define EDUCHAIN_EXPERIENCE_H
 
 #include "common.h"
+#ifdef __FRAMAC__
+/* Fase 4 (correccion BLOQUEANTE-1): predicado logico role_can (matriz de permisos).
+ * Solo bajo Frama-C: vive en verification/ (fuera del -Iinclude del build gcc). */
+#include "specifications.h"
+#endif
 
 /* Registra una experiencia en estado EXP_PENDING.
  * Permitido a ROLE_HR, y a ROLE_PRO solo si caller_id == owner_id.
@@ -70,12 +75,20 @@ int experience_register(educhain_state_t *st, role_t caller_role, int caller_id,
   ensures st->exps_count == \old(st->exps_count);
   // -------------------------------------------------------------------------
   // #3 P-2 (NO AUTOVALIDACION, regla de seguridad R-2) formalizada como ensures.
-  // Si existe la experiencia exp_id y su titular (owner_id en el pre-estado) es el
-  // propio llamador, el resultado es ERR_SELF_VALIDATE (nunca EDU_OK). Anclado en
-  // \old: el owner no cambia (es inmutable por el `assigns`), pero se referencia el
-  // pre-estado para dejar explicito que la decision se toma sobre el owner original.
-  ensures (\exists integer k; 0 <= k < \old(st->exps_count)
-           && st->exps[k].id == exp_id && \old(st->exps[k].owner_id) == caller_id)
+  // Si el llamador esta AUTORIZADO (rol con permiso OP_VALIDATE_EXP y los ids en
+  // rango valido), existe la experiencia exp_id y su titular (owner_id en el
+  // pre-estado) es el propio llamador, el resultado es ERR_SELF_VALIDATE (nunca
+  // EDU_OK). El antecedente se condiciona a la autorizacion y al rango de ids
+  // porque esos chequeos (ERR_PERM / ERR_BAD_ID) PRECEDEN a la autovalidacion en
+  // el cuerpo: sin esa guarda la postcondicion seria insatisfacible en el camino
+  // ERR_PERM (p. ej. un ROLE_PRO dueño de su experiencia) o ERR_BAD_ID
+  // (contraejemplo real, no un limite del probador). Anclado en \old: el owner es
+  // inmutable por el `assigns`, pero se referencia el pre-estado para dejar
+  // explicito que la decision se toma sobre el owner original.
+  ensures (role_can(caller_role, OP_VALIDATE_EXP)
+           && ID_MIN <= caller_id <= ID_MAX && ID_MIN <= exp_id <= ID_MAX
+           && (\exists integer k; 0 <= k < \old(st->exps_count)
+               && st->exps[k].id == exp_id && \old(st->exps[k].owner_id) == caller_id))
           ==> \result == ERR_SELF_VALIDATE;
   // (El dual positivo "en exito validator != owner" se evaluo pero NO cierra en WP:
   //  requiere unicidad global de exp_id (state_inv) para ligar el idx hallado con
