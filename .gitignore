@@ -41,3 +41,10 @@ docs/experimento_mutacion/
 *.pdf
 *.pptx
 *.html
+
+# --- Material personal de apoyo a la sustentacion (no es el entregable) ---
+docs/preguntas_respuestas.txt
+docs/guion_llamada.md
+docs/guia_sustentacion.md
+docs/presentacion.md
+docs/presentacion_codigo.md
