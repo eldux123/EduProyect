@@ -34,17 +34,14 @@ Thumbs.db
 # --- Configuracion del editor (no es parte del proyecto) ---
 .kiro/
 
-# --- Experimento de mutacion (excluido del repo por decision del autor) ---
-docs/experimento_mutacion/
-
 # --- Exportaciones de presentaciones (regenerables desde los .md) ---
 *.pdf
 *.pptx
 *.html
 
-# --- Material personal de apoyo a la sustentacion (no es el entregable) ---
-docs/preguntas_respuestas.txt
-docs/guion_llamada.md
-docs/guia_sustentacion.md
-docs/presentacion.md
-docs/presentacion_codigo.md
+# --- El repo contiene SOLO el codigo necesario + README. ---
+# Documentacion, herramientas de demo y artefactos de verificacion quedan
+# en el disco local pero fuera del repositorio, por decision del autor.
+docs/
+tools/
+verification/
