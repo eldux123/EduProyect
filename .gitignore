@@ -30,3 +30,14 @@
 *.swo
 .DS_Store
 Thumbs.db
+
+# --- Configuracion del editor (no es parte del proyecto) ---
+.kiro/
+
+# --- Experimento de mutacion (excluido del repo por decision del autor) ---
+docs/experimento_mutacion/
+
+# --- Exportaciones de presentaciones (regenerables desde los .md) ---
+*.pdf
+*.pptx
+*.html
