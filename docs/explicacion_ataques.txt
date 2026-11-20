@@ -1,0 +1,171 @@
+===============================================================================
+ EduChain — PRUEBAS ADVERSARIALES (tests/test_attacks.c) EXPLICADAS
+===============================================================================
+ Qué es: un conjunto de 18 pruebas (A1–A18) que INTENTAN ROMPER las reglas de
+ seguridad del sistema. Cada una simula un ataque y verifica que el núcleo lo
+ RECHAZA con el código de error correcto. Son pruebas DINÁMICAS (observan
+ comportamiento en casos concretos), complementan a la verificación formal.
+
+ Cómo correrlas:  bash run_tests.sh   (están dentro de la batería, 241/241)
+
+ Cómo leer cada ataque abajo:
+   ATAQUE   = qué intenta hacer el "atacante"
+   DEFENSA  = qué mecanismo del código lo impide
+   RESULTADO= el código de error que devuelve (la prueba lo verifica)
+
+-------------------------------------------------------------------------------
+ A1 — Escalada de privilegios
+-------------------------------------------------------------------------------
+ ATAQUE:   un PROFESIONAL (rol PRO) intenta VALIDAR una experiencia (algo que
+           solo pueden hacer HR o COORD).
+ DEFENSA:  security_can rechaza el rol antes de tocar nada.
+ RESULTADO: ERR_PERM.
+
+-------------------------------------------------------------------------------
+ A2 — Autovalidación (acreditarse a sí mismo)
+-------------------------------------------------------------------------------
+ ATAQUE:   alguien con rol válido (HR) que ADEMÁS es el titular intenta validar
+           SU PROPIA experiencia.
+ DEFENSA:  experience_validate compara owner_id == caller_id y lo rechaza, con
+           independencia del rol (separación de deberes).
+ RESULTADO: ERR_SELF_VALIDATE.
+
+-------------------------------------------------------------------------------
+ A3 — Alterar un registro ya validado
+-------------------------------------------------------------------------------
+ ATAQUE:   re-validar una experiencia ya validada para intentar cambiarla.
+ DEFENSA:  una experiencia VALIDATED es inmutable; se rechaza y además el
+           conteo de registros no cambia (no se crea nada nuevo).
+ RESULTADO: ERR_ALREADY_VALID (y exps_count intacto).
+
+-------------------------------------------------------------------------------
+ A4 — Duplicar identificadores
+-------------------------------------------------------------------------------
+ ATAQUE:   registrar un profesional o una experiencia con un ID que ya existe
+           (para pisar o confundir un registro).
+ DEFENSA:  se busca el ID antes de insertar; si existe, se rechaza.
+ RESULTADO: ERR_DUPLICATE (tanto para profesional como para experiencia).
+
+-------------------------------------------------------------------------------
+ A5 — Fechas inválidas / invertidas
+-------------------------------------------------------------------------------
+ ATAQUE:   registrar experiencia con fecha de fin ANTERIOR a la de inicio
+           (p. ej. para inflar o falsear un período).
+ DEFENSA:  experience_register valida rango y que inicio <= fin.
+ RESULTADO: ERR_BAD_DATE.
+
+-------------------------------------------------------------------------------
+ A6 — Usar una credencial revocada
+-------------------------------------------------------------------------------
+ ATAQUE:   emitir, activar y revocar una credencial, y luego intentar usarla
+           como si fuera válida.
+ DEFENSA:  credential_is_valid solo devuelve "válida" si el estado es ACTIVE;
+           una REVOKED nunca cuenta como válida.
+ RESULTADO: is_valid == 0 (no válida).
+
+-------------------------------------------------------------------------------
+ A7 — Revivir una credencial revocada (el clásico de falsificación)
+-------------------------------------------------------------------------------
+ ATAQUE:   reactivar una credencial que ya fue revocada.
+ DEFENSA:  REVOKED es un estado TERMINAL; no existe transición de salida.
+ RESULTADO: ERR_BAD_TRANSITION.
+
+-------------------------------------------------------------------------------
+ A8 — Punteros nulos
+-------------------------------------------------------------------------------
+ ATAQUE:   llamar a las funciones con un estado nulo (para provocar un fallo /
+           corromper memoria).
+ DEFENSA:  toda función pública comprueba st == 0 antes de desreferenciar.
+ RESULTADO: ERR_NULL (en professional_register y en audit_record_event).
+
+-------------------------------------------------------------------------------
+ A9 — Identificadores fuera de rango
+-------------------------------------------------------------------------------
+ ATAQUE:   usar IDs negativos, enormes (> ID_MAX) o un caller_id = 0.
+ DEFENSA:  se valida que todo ID esté en ID_MIN..ID_MAX antes de usarlo.
+ RESULTADO: ERR_BAD_ID (para new_id negativo, new_id excesivo y caller_id 0).
+
+-------------------------------------------------------------------------------
+ A10 — Dejar el estado a medias ante un error (atomicidad)
+-------------------------------------------------------------------------------
+ ATAQUE:   provocar un error (rol sin permiso) y ver si queda basura en el
+           estado (p. ej. un contador incrementado sin registro).
+ DEFENSA:  patrón "validar todo antes de mutar nada": un error no escribe nada.
+ RESULTADO: pros_count queda idéntico al de antes del intento.
+
+-------------------------------------------------------------------------------
+ A11 — Manipular el historial de auditoría
+-------------------------------------------------------------------------------
+ ATAQUE:   que el log tenga eventos desordenados o con números repetidos (para
+           borrar/ocultar una acción).
+ DEFENSA:  el log es append-only y el seq es estrictamente creciente.
+ RESULTADO: se verifica que todos los seq del log van en orden creciente.
+
+-------------------------------------------------------------------------------
+ A12 — Operar con el historial lleno
+-------------------------------------------------------------------------------
+ ATAQUE:   registrar cuando el log de auditoría ya está lleno (para colar una
+           operación sin dejar rastro).
+ DEFENSA:  si no hay espacio para auditar, la operación se rechaza ANTES de
+           mutar (no hay cambio sin su evento).
+ RESULTADO: ERR_FULL, y el profesional NO se agregó.
+
+-------------------------------------------------------------------------------
+ A13 — Transiciones de estado ilegales
+-------------------------------------------------------------------------------
+ ATAQUE:   saltar pasos de la máquina de estados: PENDING->BLOCKED directo,
+           reactivar algo que no está bloqueado, activar algo ya activo.
+ DEFENSA:  cada transición exige el estado de origen EXACTO.
+ RESULTADO: ERR_BAD_TRANSITION en todos los saltos ilegales.
+
+-------------------------------------------------------------------------------
+ A14 — Operar credenciales sin el rol adecuado
+-------------------------------------------------------------------------------
+ ATAQUE:   un PRO o un VERIFIER intenta bloquear; un HR intenta revocar.
+ DEFENSA:  security_can solo autoriza bloquear/revocar a ADMIN/COORD.
+ RESULTADO: ERR_PERM en los tres intentos.
+
+-------------------------------------------------------------------------------
+ A15 — Confirmar una transición que SÍ debe permitirse (prueba positiva)
+-------------------------------------------------------------------------------
+ QUÉ:      revocar una credencial PENDING (PENDING->REVOKED) debe ser legal.
+ POR QUÉ:  revocar algo pendiente es conservador/seguro; la tabla lo permite.
+ RESULTADO: EDU_OK y la credencial queda en REVOKED.
+ (Esta prueba evita falsos positivos: confirma que no bloqueamos de más.)
+
+-------------------------------------------------------------------------------
+ A16 — Duplicar credenciales
+-------------------------------------------------------------------------------
+ ATAQUE:   emitir dos credenciales con el mismo cred_id, o dar una SEGUNDA
+           credencial al mismo profesional.
+ DEFENSA:  se rechaza el cred_id repetido y "una credencial por profesional".
+ RESULTADO: ERR_DUPLICATE en ambos casos.
+
+-------------------------------------------------------------------------------
+ A17 — Tratar como válida una credencial que no está activa
+-------------------------------------------------------------------------------
+ ATAQUE:   usar una credencial PENDING o BLOCKED como si fuera válida.
+ DEFENSA:  solo ACTIVE cuenta como válida.
+ RESULTADO: is_valid == 0 para PENDING y para BLOCKED.
+
+-------------------------------------------------------------------------------
+ A18 — Desbordar la capacidad de almacenamiento
+-------------------------------------------------------------------------------
+ ATAQUE:   registrar más profesionales de los que caben (MAX_PROFESSIONALS).
+ DEFENSA:  al llegar al límite, se rechaza sin escribir fuera del arreglo.
+ RESULTADO: se llena exacto hasta MAX, y el siguiente da ERR_FULL.
+
+===============================================================================
+ RESUMEN PARA LA DEFENSA
+===============================================================================
+ - Son 18 escenarios de ataque; el sistema rechaza TODOS con el código correcto.
+ - Cubren: escalada de privilegios, autoacreditación, falsificar/revivir
+   credenciales, alterar registros validados, duplicar, fechas falsas,
+   manipular el historial, desbordar memoria y punteros nulos.
+ - Idea clave: en EduChain un "certificado" o "credencial" NO es un documento
+   editable, es un ESTADO controlado por reglas verificadas. No hay forma de
+   marcar algo como válido saltándose el flujo autorizado y auditado.
+ - Prueba en vivo: bash run_tests.sh  (verás [ ok ] en cada A1..A18).
+ - Distinción honesta: estas pruebas OBSERVAN casos concretos; la verificación
+   formal (WP) DEMUESTRA las propiedades para todas las entradas. Se complementan.
+===============================================================================

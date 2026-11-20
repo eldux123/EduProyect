@@ -39,9 +39,12 @@ Thumbs.db
 *.pptx
 *.html
 
-# --- El repo contiene SOLO el codigo necesario + README. ---
-# Documentacion, herramientas de demo y artefactos de verificacion quedan
-# en el disco local pero fuera del repositorio, por decision del autor.
-docs/
-tools/
-verification/
+# --- Experimento de mutacion (excluido del repo por decision del autor) ---
+docs/experimento_mutacion/
+
+# --- Material personal de apoyo a la sustentacion (no es el entregable) ---
+docs/preguntas_respuestas.txt
+docs/guion_llamada.md
+docs/guia_sustentacion.md
+docs/presentacion.md
+docs/presentacion_codigo.md

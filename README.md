@@ -48,11 +48,17 @@ EduChain/
 │   └── env_captured.txt          versiones de herramientas
 ├── tests/                   241 pruebas (unitarias + adversariales)
 │   ├── test_professionals.c  test_experience.c  test_credentials.c
+│   ├── test_requests.c      pruebas del módulo de solicitudes
 │   ├── test_attacks.c       pruebas adversariales A1–A18
 │   └── test_framework.h  test_main.c
+├── tools/
+│   ├── probar_profesional.c   CLI de demo: registrar un profesional en vivo
+│   └── probar_profesional.sh  compila y ejecuta esa CLI
 ├── docs/
 │   ├── phase1_model.md          modelo: actores, reglas, estados, propiedades
 │   ├── architecture.md          arquitectura y firmas
+│   ├── explicacionv1.md         explicación técnica completa del sistema
+│   ├── explicacion_ataques.txt  las pruebas adversariales A1–A18 explicadas
 │   └── formal_verification.md   resultados WP/Eva, línea base e historial
 ├── main.c                   demo mínima (NO verificada, fuera del alcance de WP/Eva)
 ├── run_tests.sh             compila y corre las 241 pruebas (normal + ASan/UBSan)
