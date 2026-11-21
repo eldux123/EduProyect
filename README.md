@@ -89,7 +89,7 @@ datos confiables y verifica *autorización*, no *autenticación*.
 **Experiencia:** `PENDING --validate--> VALIDATED` (validado es inmutable por operaciones ordinarias;
 nadie valida su propia experiencia).
 
-**Reglas de negocio (BR-1..BR-11)** y **propiedades formales (P-1..P-13)** están en
+**Reglas de negocio (BR-*)** y **propiedades formales (P-*)** están detalladas en
 `docs/phase1_model.md`. Códigos de retorno en `include/common.h` (`EDU_OK=0`, errores negativos).
 **Atomicidad:** un error nunca modifica el estado (se valida todo antes de mutar nada).
 
@@ -218,26 +218,23 @@ corrida previa y se regeneran al re-ejecutar; 0 alarmas y 0 inválidas se mantie
 
 Este proyecto **no está terminado**. Pendientes reales:
 
-1. **Hallazgo bloqueante abierto (Fase 4).** Un revisor identificó que el `ensures` de P-1 en
-   `cred_transition` es más fuerte que el código (contraejemplo con `caller_id` fuera de rango que
-   devuelve `ERR_BAD_ID` en vez de `ERR_PERM`). Hay que condicionar el antecedente al rango de IDs y
-   reclasificar la obligación en el doc. Ver `.agents/tasks/educhain-fase4-acsl/review.json`.
-2. **Obligaciones WP pendientes (19 Failures + 29 timeouts).** Dos causas:
+1. **Obligaciones WP pendientes (51 Failures + 32 timeouts, ver tabla §5).** Dos causas:
    - *Limitación de automatización del probador*: WP no encadena el frame a través de la llamada de
      auditoría sobre `educhain_state_t` (~7 KB). Afecta la atomicidad de contadores. Las propiedades
      son ciertas (respaldadas por tests + Eva) pero no cerradas por WP. No son contraejemplos
      (verificado con smoke-tests y reintentos con Z3).
-   - *Especificación mejorable*: la máquina de estados (P-7) y la no-autovalidación (P-2) aún no están
+   - *Especificación mejorable*: la máquina de estados y la no-autovalidación aún no están
      completamente formalizadas como `ensures` en algunos contratos.
-3. **Falta `state_inv` global.** Sin un invariante de estado, propiedades como unicidad global de IDs,
+   (Durante la Fase 4 se identificó y **corrigió** un caso en `cred_transition` donde el `ensures`
+   de autorización era más fuerte que el código; hoy el contrato admite `ERR_PERM || ERR_BAD_ID`.)
+2. **Falta `state_inv` global.** Sin un invariante de estado, propiedades como unicidad global de IDs,
    "una credencial por owner" y monotonía global del log no son expresables de forma que WP las cierre
    (hoy se garantizan en el código y por tests, no por contrato).
-4. **Auditoría solo de éxitos (S-12).** Los intentos **rechazados** no se registran; el campo
+3. **Auditoría solo de éxitos (S-12).** Los intentos **rechazados** no se registran; el campo
    `event_t.result` siempre vale `EDU_OK`. Mejora pendiente.
-5. **R-6 sin enforcement interno (S-6).** El núcleo expone `credential_is_valid` pero no "consume"
+4. **R-6 sin enforcement interno (S-6).** El núcleo expone `credential_is_valid` pero no "consume"
    credenciales; aplicar la regla depende de la capa externa.
-6. **Validación de fechas por rango, no de calendario.** `20240230` se acepta (decisión documentada).
-7. **Entregables finales** (los 12 del enunciado académico) aún sin consolidar.
+5. **Validación de fechas por rango, no de calendario.** `20240230` se acepta (decisión documentada).
 
 Lo que el núcleo **NO** garantiza: veracidad real de los datos, persistencia, cifrado, concurrencia,
 ni seguridad de la capa de aplicación.
@@ -250,6 +247,8 @@ ni seguridad de la capa de aplicación.
 |-----------|-----------|
 | `docs/phase1_model.md` | Actores, matriz de permisos, estructuras, máquinas de estado, reglas BR-*, propiedades P-*, modelo de amenazas, supuestos y límites. |
 | `docs/architecture.md` | Arquitectura modular, firmas de funciones, contratos en lenguaje natural, trazabilidad reglas→funciones. |
+| `docs/explicacionv1.md` | Explicación técnica completa de lo que el código hace actualmente (los 6 módulos + flujo de solicitudes). |
+| `docs/explicacion_ataques.txt` | Las 18 pruebas adversariales (A1–A18) explicadas: qué ataca cada una y cómo la bloquea el núcleo. |
 | `docs/formal_verification.md` | Resultados WP/Eva reales, **línea base** e historial de cada ejecución, clasificación de pendientes. |
 
 ---
